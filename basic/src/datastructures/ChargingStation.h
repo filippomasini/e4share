@@ -7,19 +7,30 @@
 #ifndef CHARGINGSTATION_H_
 #define CHARGINGSTATION_H_
 
-#include "StreetNetwork.h"
-
 namespace e4share
 {
 
 class ChargingStation
 {
 public:
-	ChargingStation(StreetNetwork& network_, StreetNetwork::Vertex& location_, int cost_, int costPerSlot_, int capacity_);
+	ChargingStation(int cost_, int costPerSlot_, int capacity_);
+
+	int getCapacity() const
+	{
+		return capacity;
+	}
+
+	int getCost() const
+	{
+		return cost;
+	}
+
+	int getCostPerSlot() const
+	{
+		return costPerSlot;
+	}
 
 private:
-	StreetNetwork& network;
-	StreetNetwork::Vertex& location;
 	int cost;
 	int costPerSlot;
 	int capacity;

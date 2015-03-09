@@ -14,7 +14,7 @@ dependencyfiles = $(patsubst $(objectdir)/%.o, $(objectdir)/%.d, $(objectfiles))
 
 # c++ compiler and its flags for compiling and linking
 CXX = clang++
-CXXFLAGS = -Weverything -MMD -std=c++11 -fPIC
+CXXFLAGS = -Wall -Wextra -MMD -std=c++11 -fPIC
 
 
 all: debug
