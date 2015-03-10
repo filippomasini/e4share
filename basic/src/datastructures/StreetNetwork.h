@@ -35,7 +35,7 @@ public:
 		return candidateStations;
 	}
 
-	Vertex& getVertex(int index)
+	Vertex getVertex(int index)
 	{
 		auto vp = vertices(network);
 		for(int i = 0; i < index; i++)
