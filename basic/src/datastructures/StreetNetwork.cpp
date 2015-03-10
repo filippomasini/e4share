@@ -37,7 +37,9 @@ void StreetNetwork::addArcPair(Vertex source, Vertex target, int distance)
 void StreetNetwork::addChargingStation(Vertex& vertex, int cost, int costPerSlot, int capacity)
 {
 	network[vertex].reset();
-	network[vertex] = ChargingStation(cost, costPerSlot, capacity);
+	ChargingStation cs(cost, costPerSlot, capacity);
+	network[vertex] = cs;
+	candidateStations.push_back(cs);
 }
 
 std::vector<ChargingStation> StreetNetwork::findNearbyStations(Vertex vertex)

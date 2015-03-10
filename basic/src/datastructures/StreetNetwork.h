@@ -29,6 +29,12 @@ public:
 	typedef Graph::edge_descriptor Edge;
 
 	StreetNetwork();
+
+	const std::vector<ChargingStation>& getCandidateStations() const
+	{
+		return candidateStations;
+	}
+
 	Vertex addVertex();
 	void addArc(Vertex source, Vertex target, int distance);
 	void addArcPair(Vertex source, Vertex target, int distance);
@@ -39,6 +45,7 @@ public:
 
 private:
 	Graph network;
+	std::vector<ChargingStation> candidateStations;
 };
 
 } /* namespace e4share */
