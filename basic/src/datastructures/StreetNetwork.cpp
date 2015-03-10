@@ -12,7 +12,8 @@ namespace e4share
 {
 
 StreetNetwork::StreetNetwork() :
-		network()
+		network(),
+		candidateStations()
 {
 
 }
