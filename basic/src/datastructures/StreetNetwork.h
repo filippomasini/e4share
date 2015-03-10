@@ -35,11 +35,21 @@ public:
 		return candidateStations;
 	}
 
+	Vertex& getVertex(int index)
+	{
+		auto vp = vertices(network);
+		for(int i = 0; i < index; i++)
+		{
+			vp.first++;
+		}
+		return *vp.first;
+	}
+
 	Vertex addVertex();
 	void addArc(Vertex source, Vertex target, int distance);
 	void addArcPair(Vertex source, Vertex target, int distance);
 
-	void addChargingStation(Vertex& vertex, int cost, int costPerSlot, int capacity);
+	void addChargingStation(Vertex vertex, int cost, int costPerSlot, int capacity);
 
 	std::vector<ChargingStation> findNearbyStations(Vertex vertex);
 

@@ -16,7 +16,7 @@ class Trip
 {
 
 public:
-	Trip(StreetNetwork& network_, StreetNetwork::Vertex& origin_, StreetNetwork::Vertex& destination_, int beginTime_, int endTime_,
+	Trip(StreetNetwork& network_, StreetNetwork::Vertex origin_, StreetNetwork::Vertex destination_, int beginTime_, int endTime_,
 			double batteryConsumption_, int profit_);
 
 	double getBatteryConsumption() const
@@ -41,8 +41,8 @@ public:
 
 private:
 	StreetNetwork& network;
-	StreetNetwork::Vertex& origin;
-	StreetNetwork::Vertex& destination;
+	StreetNetwork::Vertex origin;
+	StreetNetwork::Vertex destination;
 	int beginTime;
 	int endTime;
 	double batteryConsumption;

@@ -35,7 +35,7 @@ void StreetNetwork::addArcPair(Vertex source, Vertex target, int distance)
 	addArc(target, source, distance);
 }
 
-void StreetNetwork::addChargingStation(Vertex& vertex, int cost, int costPerSlot, int capacity)
+void StreetNetwork::addChargingStation(Vertex vertex, int cost, int costPerSlot, int capacity)
 {
 	network[vertex].reset();
 	ChargingStation cs(cost, costPerSlot, capacity);
