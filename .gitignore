@@ -1,0 +1,14 @@
+# object files
+obj/
+
+# eclipse project files
+.project
+.cproject
+.settings
+
+# libs
+*.a
+*.so
+
+# executables
+loc-uv
