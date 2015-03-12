@@ -39,6 +39,16 @@ public:
 		return profit;
 	}
 
+	StreetNetwork::Vertex getOrigin() const
+	{
+		return origin;
+	}
+
+	StreetNetwork::Vertex getDestination() const
+	{
+		return destination;
+	}
+
 private:
 	StreetNetwork& network;
 	StreetNetwork::Vertex origin;

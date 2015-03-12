@@ -35,10 +35,16 @@ public:
 		return trips;
 	}
 
+	int getMaxTime() const
+	{
+		return maxTime;
+	}
+
 private:
 	StreetNetwork network;
 	std::vector<Trip> trips;
 	int carCount;
+	int maxTime;
 };
 
 } /* namespace e4share */
