@@ -51,7 +51,7 @@ public:
 
 	void addChargingStation(Vertex vertex, int cost, int costPerSlot, int capacity);
 
-	std::vector<ChargingStation> findNearbyStations(Vertex vertex);
+	std::vector<int> findNearbyStations(Vertex vertex) const;
 
 private:
 	Graph network;

@@ -43,24 +43,33 @@ void StreetNetwork::addChargingStation(Vertex vertex, int cost, int costPerSlot,
 	candidateStations.push_back(cs);
 }
 
-std::vector<ChargingStation> StreetNetwork::findNearbyStations(Vertex vertex)
+std::vector<int> StreetNetwork::findNearbyStations(Vertex vertex) const
 {
 	//TODO use depth-limited Dijkstra
-	std::vector<ChargingStation> stations;
+	std::vector<int> stations;
 
-	std::vector<int> distance;
-	boost::dijkstra_shortest_paths(network, vertex, distance_map(boost::make_iterator_property_map(distance.begin(),
-			get(boost::vertex_index, network))) .weight_map(get(boost::edge_bundle, network)));
+	std::vector<int> distance(boost::num_vertices(network));
+	std::vector<Vertex> pred(boost::num_vertices(network));
+	boost::dijkstra_shortest_paths(network, vertex,
+			distance_map(boost::make_iterator_property_map(distance.begin(), get(boost::vertex_index, network)))
+			.weight_map(get(boost::edge_bundle, network))
+			);
 
 	auto vp = vertices(network);
+	int i = 0;
 	for(auto v = vp.first; v != vp.second; v++)
 	{
-		if(distance[*v] < 3)
+
+		//if(distance[*v] < 3)
+		if(network[*v].is_initialized())
 		{
-			if(network[*v].is_initialized())// != boost::none)
+			//if(network[*v].is_initialized())// != boost::none)
+			if(distance[*v] < 3)
 			{
-				stations.push_back(*network[*v]);
+				//stations.push_back(*network[*v]);
+				stations.push_back(i);
 			}
+			i++;
 		}
 	}
 

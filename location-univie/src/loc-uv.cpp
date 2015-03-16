@@ -8,12 +8,15 @@
 namespace po = boost::program_options;
 
 #include "datastructures/CSLocationInstance.h"
+#include "datastructures/LocationGraph.h"
 #include "input/TempFormatReader.h"
+#include "stacktrace.h"
 
 using namespace e4share;
 
 int main(int argc, const char* argv[])
 {
+	register_handler();
 	std::string filename;
 
 	po::options_description desc("Allowed options");
@@ -55,6 +58,8 @@ int main(int argc, const char* argv[])
 	}
 
 	std::cout << "maxTime: " << instance.getMaxTime() << std::endl;
+
+	LocationGraph locationGraph(instance);
 
 	return 0;
 }
