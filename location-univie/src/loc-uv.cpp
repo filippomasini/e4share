@@ -9,6 +9,7 @@ namespace po = boost::program_options;
 
 #include "datastructures/CSLocationInstance.h"
 #include "datastructures/LocationGraph.h"
+#include "datastructures/BatteryGraph.h"
 #include "input/TempFormatReader.h"
 #include "stacktrace.h"
 
@@ -60,6 +61,7 @@ int main(int argc, const char* argv[])
 	std::cout << "maxTime: " << instance.getMaxTime() << std::endl;
 
 	LocationGraph locationGraph(instance);
+	BatteryGraph batteryGraph(instance);
 
 	return 0;
 }
