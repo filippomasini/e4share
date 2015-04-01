@@ -50,7 +50,7 @@ LocationGraph::LocationGraph(CSLocationInstance& instance_) :
 	{
 		auto origin = trip.getOrigin();
 		auto destination = trip.getDestination();
-		std::cout << "trip: " << origin << ", " << destination << std::endl;
+		//std::cout << "trip: " << origin << ", " << destination << std::endl;
 		std::vector<int> originStations = instance.getNetwork().findNearbyStations(origin);
 		std::vector<int> destinationStations = instance.getNetwork().findNearbyStations(destination);
 
@@ -58,13 +58,13 @@ LocationGraph::LocationGraph(CSLocationInstance& instance_) :
 		{
 			for(int destinationstation : destinationStations)
 			{
-				std::cout << originstation << ", " << destinationstation << std::endl;
+				//std::cout << originstation << ", " << destinationstation << std::endl;
 				boost::add_edge(getVertex(originstation, trip.getBeginTime()), getVertex(destinationstation, trip.getEndTime()), graph);
 			}
 		}
 	}
 
-	std::cout << boost::num_vertices(graph) << ", " << boost::num_edges(graph) << std::endl;
+	//std::cout << boost::num_vertices(graph) << ", " << boost::num_edges(graph) << std::endl;
 
 }
 

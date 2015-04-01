@@ -54,7 +54,7 @@ BatteryGraph::BatteryGraph(CSLocationInstance instance_) :
 	{
 		auto origin = trip.getOrigin();
 		auto destination = trip.getDestination();
-		std::cout << "trip: " << origin << ", " << destination << std::endl;
+		//std::cout << "trip: " << origin << ", " << destination << std::endl;
 		int consumptionInPercent = (int)(trip.getBatteryConsumption() * 100);
 		// round up to nearest stateskip
 		int roundedConsumption = consumptionInPercent;
@@ -80,7 +80,7 @@ BatteryGraph::BatteryGraph(CSLocationInstance instance_) :
 	{
 		auto from = boost::source(*foo.first, graph);
 		auto to = boost::target(*foo.first, graph);
-		std::cout << "from t" << graph[from]->time << "@" << graph[from]->chargestate << " to t" << graph[to]->time << "@" << graph[to]->chargestate << std::endl;
+		//std::cout << "from t" << graph[from]->time << "@" << graph[from]->chargestate << " to t" << graph[to]->time << "@" << graph[to]->chargestate << std::endl;
 	}
 }
 
