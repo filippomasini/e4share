@@ -17,7 +17,6 @@ class BatteryGraph
 public:
 	BatteryGraph(CSLocationInstance instance_);
 
-private:
 	struct VertexAttr
 	{
 		int chargestate;
@@ -26,6 +25,15 @@ private:
 
 	typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, boost::optional<VertexAttr>> Graph;
 	typedef Graph::vertex_descriptor Vertex;
+	typedef Graph::edge_descriptor Edge;
+
+	int edgeCount() const
+	{
+		return boost::num_edges(graph);
+	}
+
+private:
+
 
 	CSLocationInstance instance;
 	Graph graph;
@@ -35,6 +43,8 @@ private:
 	{
 		return boost::vertex(((time - 1) * (100 / stateskip + 1)) + (chargestate / stateskip) + 1, graph);
 	}
+
+
 };
 
 } /* namespace e4share */

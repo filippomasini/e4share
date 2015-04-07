@@ -10,6 +10,7 @@ namespace po = boost::program_options;
 #include "datastructures/CSLocationInstance.h"
 #include "datastructures/LocationGraph.h"
 #include "datastructures/BatteryGraph.h"
+#include "ilp/TwoLayeredGraphsILP.h"
 #include "input/TempFormatReader.h"
 #include "stacktrace.h"
 
@@ -19,11 +20,13 @@ int main(int argc, const char* argv[])
 {
 	register_handler();
 	std::string filename;
+	int budget;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help,h", "produce help message")
 		("file,f", po::value<std::string>(&filename)->required(), "input file to be processed")
+		("budget,b", po::value<int>(&budget)->required(), "budget available")
 	;
 
 	po::variables_map vm;
@@ -60,8 +63,11 @@ int main(int argc, const char* argv[])
 
 	std::cout << "maxTime: " << instance.getMaxTime() << std::endl;
 
-	LocationGraph locationGraph(instance);
-	BatteryGraph batteryGraph(instance);
+	TwoLayeredGraphsILP ilp(instance, budget);
+	ilp.solve();
+
+	//LocationGraph locationGraph(instance);
+	//BatteryGraph batteryGraph(instance);
 
 	return 0;
 }
