@@ -42,8 +42,8 @@ private:
 	IloBoolVarArray a;
 	IloBoolVarArray xc;
 	IloBoolVarArray zc;
-	IloNumVarArray f;
-	IloNumVarArray g;
+	IloBoolVarArray f;
+	IloBoolVarArray g;
 
 	void addModel();
 };

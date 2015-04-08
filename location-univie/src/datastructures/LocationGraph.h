@@ -93,6 +93,28 @@ public:
 		return boost::edge(root, target, graph).first;
 	}
 
+	std::vector<Edge> tripArcsFrom(Trip trip, unsigned long station)
+	{
+		std::vector<Edge> arcs;
+		auto dStations = instance.getNetwork().findNearbyStations(trip.getDestination());
+		for(int cs : dStations)
+		{
+			arcs.push_back(boost::edge(getVertex(station, trip.getBeginTime()), getVertex(cs, trip.getEndTime()), graph).first);
+		}
+		return arcs;
+	}
+
+	std::vector<Edge> tripArcsTo(Trip trip, unsigned long station)
+	{
+		std::vector<Edge> arcs;
+		auto oStations = instance.getNetwork().findNearbyStations(trip.getOrigin());
+		for(int cs : oStations)
+		{
+			arcs.push_back(boost::edge(getVertex(cs, trip.getBeginTime()), getVertex(station, trip.getEndTime()), graph).first);
+		}
+		return arcs;
+	}
+
 private:
 
 

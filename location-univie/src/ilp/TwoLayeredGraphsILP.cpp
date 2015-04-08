@@ -6,7 +6,10 @@
 
 #include "ilp/TwoLayeredGraphsILP.h"
 
+#include <algorithm>
+#include <functional>
 #include <map>
+#include <set>
 
 namespace e4share
 {
@@ -73,25 +76,32 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 		locEdgeIndex[e] = edgeIndex;
 		edgeIndex++;
 	}
+
+	edgeIndex = 0;
 	std::map<BatteryGraph::Edge, int> batEdgeIndex;
+	for(BatteryGraph::Edge e : batteryGraph.allEdges())
+	{
+		batEdgeIndex[e] = edgeIndex;
+		edgeIndex++;
+	}
 
 	// flow in location graph
 	int locationEdgeCount = locationGraph.edgeCount();
-	f = IloNumVarArray(env, carCount * locationEdgeCount);
+	f = IloBoolVarArray(env, carCount * locationEdgeCount);
 
 	// flow in battery graph
 	int batteryEdgeCount = batteryGraph.edgeCount();
-	g = IloNumVarArray(env, carCount * batteryEdgeCount);
+	g = IloBoolVarArray(env, carCount * batteryEdgeCount);
 	for(int c = 0; c < carCount; c++)
 	{
 		for(int e = 0; e < locationEdgeCount; e++)
 		{
-			f[c * locationEdgeCount + e] = IloNumVar(env);
+			f[c * locationEdgeCount + e] = IloBoolVar(env);
 		}
 
 		for(int e = 0; e < batteryEdgeCount; e++)
 		{
-			g[c * batteryEdgeCount + e] = IloNumVar(env);
+			g[c * batteryEdgeCount + e] = IloBoolVar(env);
 		}
 	}
 
@@ -119,10 +129,8 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 	// station capacity
 	for(int i = 0; i < instance.getNetwork().getCandidateStations().size(); i++)
 	{
-		IloExpr capacity(env);
-		capacity += s[i];
-		model.add(capacity <= instance.getNetwork().getCandidateStations()[i].getCapacity() * y[i]);
-		capacity.end();
+		model.add(s[i] <= instance.getNetwork().getCandidateStations()[i].getCapacity() * y[i]);
+		model.add(s[i] >= y[i]);
 	}
 
 
@@ -143,18 +151,38 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 		IloExpr endStations(env);
 		auto startCandidates = instance.getNetwork().findNearbyStations(instance.getTrips()[k].getOrigin());
 		auto endCandidates = instance.getNetwork().findNearbyStations(instance.getTrips()[k].getDestination());
-		for(int tripIndex : startCandidates)
+		for(int stationIndex : startCandidates)
 		{
-			startStations += x[k * instance.getNetwork().getCandidateStations().size() + tripIndex];
+			startStations += x[k * instance.getNetwork().getCandidateStations().size() + stationIndex];
 		}
-		for(int tripIndex : endCandidates)
+		for(int stationIndex : endCandidates)
 		{
-			endStations += z[k * instance.getNetwork().getCandidateStations().size() + tripIndex];
+			endStations += z[k * instance.getNetwork().getCandidateStations().size() + stationIndex];
 		}
 		model.add(startStations == lambda[k]);
 		model.add(endStations == lambda[k]);
 		startStations.end();
 		endStations.end();
+
+		// disallow stations that are not candidates
+		IloExpr nonStartStations(env);
+		IloExpr nonEndStations(env);
+		for(int i = 0; i < stationCount; i++)
+		{
+			if(std::count(startCandidates.begin(), startCandidates.end(), i) == 0)
+			{
+				nonStartStations += x[k * instance.getNetwork().getCandidateStations().size() + i];
+			}
+			if(std::count(endCandidates.begin(), endCandidates.end(), i) == 0)
+			{
+				nonStartStations += z[k * instance.getNetwork().getCandidateStations().size() + i];
+			}
+		}
+		model.add(nonStartStations == 0);
+		model.add(nonEndStations == 0);
+		nonStartStations.end();
+		nonEndStations.end();
+
 	}
 
 	// linking a and x/z variables
@@ -177,6 +205,7 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 	}
 
 
+	// LOCATION GRAPH FLOW
 	// capacity constraint on flow
 	for(int i = 0; i < stationCount; i++)
 	{
@@ -224,7 +253,8 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 		{
 			rootFlow += f[c * locationEdgeCount + locEdgeIndex[edge]];
 		}
-		model.add(rootFlow == carTrips);
+		model.add(rootFlow <= carTrips);
+		model.add(rootFlow <= 1);
 		carTrips.end();
 		rootFlow.end();
 	}
@@ -252,6 +282,103 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 				inFlow.end();
 				outFlow.end();
 			}
+		}
+	}
+
+	// flow for covered trips
+	for(int k = 0; k < tripCount; k++)
+	{
+		for(int i = 0; i < stationCount; i++)
+		{
+			auto arcsToDestinations = locationGraph.tripArcsFrom(instance.getTrips()[k], i);
+			auto arcsFromOrigins = locationGraph.tripArcsTo(instance.getTrips()[k], i);
+			for(int c = 0; c < carCount; c++)
+			{
+				IloExpr flowToDestinations(env);
+				for(auto arc : arcsToDestinations)
+				{
+					flowToDestinations += f[c * locationEdgeCount + locEdgeIndex[arc]];
+				}
+				model.add(flowToDestinations == xc[k * stationCount * carCount + c * stationCount + i]);
+				flowToDestinations.end();
+
+				IloExpr flowFromOrigins(env);
+				for(auto arc : arcsFromOrigins)
+				{
+					flowFromOrigins += f[c * locationEdgeCount + locEdgeIndex[arc]];
+				}
+				model.add(flowFromOrigins == zc[k * stationCount * carCount + c * stationCount + i]);
+				flowFromOrigins.end();
+			}
+		}
+	}
+
+
+	// BATTERY GRAPH FLOW
+	// only use selected cars
+
+	for(int c = 0; c < carCount; c++)
+	{
+		IloExpr carTrips(env);
+		IloExpr rootFlow(env);
+		for(int k = 0; k < tripCount; k++)
+		{
+			carTrips += a[k * carCount + c];
+		}
+		auto rootEdges = batteryGraph.outgoingEdges();
+		for(auto edge: rootEdges)
+		{
+			rootFlow += g[c * batteryEdgeCount + batEdgeIndex[edge]];
+		}
+		//model.add(rootFlow <= carTrips);
+		model.add(rootFlow == 1);
+		carTrips.end();
+		rootFlow.end();
+	}
+
+	// flow conservation
+	for(int c = 0; c < carCount; c++)
+	{
+		for(int charge = 0; charge <= 100; charge += 5)
+		{
+			for(int t = 1; t < instance.getMaxTime(); t++)
+			{
+				auto inEdges = batteryGraph.incomingEdges(charge, t);
+				auto outEdges = batteryGraph.outgoingEdges(charge, t);
+				IloExpr inFlow(env);
+				IloExpr outFlow(env);
+				for(auto edge : inEdges)
+				{
+					inFlow += g[c * batteryEdgeCount + batEdgeIndex[edge]];
+				}
+				for(auto edge : outEdges)
+				{
+					outFlow += g[c * batteryEdgeCount + batEdgeIndex[edge]];
+				}
+				model.add(inFlow == outFlow);
+				inFlow.end();
+				outFlow.end();
+			}
+		}
+	}
+
+	// flow for covered trips
+	for(int k = 0; k < tripCount; k++)
+	{
+		auto tripArcs = batteryGraph.tripArcs(instance.getTrips()[k]);
+		std::cout << tripArcs.size() << " trip arcs for trip " << k << std::endl;
+
+		for(int c = 0; c < carCount; c++)
+		{
+			IloExpr flow(env);
+
+			for(auto arc : tripArcs)
+			{
+				flow += g[c * batteryEdgeCount + batEdgeIndex[arc]];
+			}
+			model.add(flow == a[k * carCount + c]);
+			//model.add(flow == 0);
+			flow.end();
 		}
 	}
 
@@ -288,6 +415,8 @@ void TwoLayeredGraphsILP::solve()
 	auto avals = IloNumArray(env);
 	auto xcvals = IloNumArray(env);
 	auto zcvals = IloNumArray(env);
+	auto fvals = IloNumArray(env);
+	auto gvals = IloNumArray(env);
 
 	cplex.getValues(lambdavals, lambda);
 	cplex.getValues(xvals, x);
@@ -295,6 +424,8 @@ void TwoLayeredGraphsILP::solve()
 	cplex.getValues(avals, a);
 	cplex.getValues(xcvals, xc);
 	cplex.getValues(zcvals, zc);
+	cplex.getValues(fvals, f);
+	cplex.getValues(gvals, g);
 
 	for(int i = 0; i < stationCount; i++)
 	{
@@ -307,17 +438,39 @@ void TwoLayeredGraphsILP::solve()
 
 		if(lambdavals[k] == 1)
 		{
+			/*std::cout << " candidate starts: ";
+			for(auto station : instance.getNetwork().findNearbyStations(instance.getTrips()[k].getOrigin()))
+			{
+				std::cout << station << ", ";
+			}
+			std::cout << std::endl;
+
+			std::cout << " candidate ends: ";
+			for(auto station : instance.getNetwork().findNearbyStations(instance.getTrips()[k].getDestination()))
+			{
+				std::cout << station << ", ";
+			}
+			std::cout << std::endl;*/
+
 			for(int i = 0; i < stationCount; i++)
 			{
 				int index = k * stationCount + i;
-				if(xvals[index] == 1)
+				if(xvals[index] > 0.5)
 				{
 					std::cout << " startstation " << i << std::endl;
 				}
-				if(zvals[index] == 1)
+				/*else if(xvals[index] != 0)
+				{
+					std::cout << " startstation " << i << ": " << xvals[index] << std::endl;
+				}*/
+				if(zvals[index] > 0.5)
 				{
 					std::cout << " endstation " << i << std::endl;
 				}
+				/*else if(zvals[index] != 0)
+				{
+					std::cout << " endstation " << i << ": " << zvals[index] << std::endl;
+				}*/
 			}
 
 			for(int c = 0; c < carCount; c++)
@@ -332,10 +485,112 @@ void TwoLayeredGraphsILP::solve()
 				for(int i = 0; i < stationCount; i++)
 				{
 					int index2 = k * stationCount * carCount + c * stationCount + i;
+					if(xcvals[index2] == 1)
+					{
+						std::cout << " xc(k=" << k << ",i=" << i << ",c=" << c << ")  == " << xcvals[index2] << std::endl;
+					}
+					if(zcvals[index2] == 1)
+					{
+						std::cout << " zc(k=" << k << ",i=" << i << ",c=" << c << ")  == " << zcvals[index2] << std::endl;
+					}
 					//std::cout << "xc[" << index2 << "]: " << xcvals[index2] << std::endl;
 					//std::cout << "zc[" << index2 << "]: " << zcvals[index2] << std::endl;
 				}
 			}
+		}
+	}
+
+	std::cout << std::endl;
+	auto edges = locationGraph.allEdges();
+	auto batteryEdges = batteryGraph.allEdges();
+	for(int c = 0; c < carCount; c++)
+	{
+		int assignedTrips = 0;
+		for(int k = 0; k < tripCount; k++)
+		{
+			assignedTrips += avals[k * carCount + c];
+		}
+
+		// if car is used
+		if(assignedTrips > 0)
+		{
+			std::cout << "car " << c << " with " << assignedTrips << " assigned trips: ";
+			for(int k = 0; k < tripCount; k++)
+			{
+				if(avals[k * carCount + c] == 1)
+				{
+					std::cout << k << ", ";
+				}
+			}
+			std::cout << std::endl;
+			std::set<LocationGraph::Edge, std::function<bool (LocationGraph::Edge, LocationGraph::Edge)>> usedEdges
+					(
+							[](LocationGraph::Edge e1, LocationGraph::Edge e2)
+							{
+								if(e1.m_source == e2.m_source)
+								{
+									return e1.m_target < e2.m_target;
+								}
+								else
+								{
+									return e1.m_source < e2.m_source;
+								}
+							}
+					);
+			int e = 0;
+			for(auto edge : edges)
+			{
+				if(fvals[c * edges.size() + e] == 1)
+				{
+					usedEdges.insert(edge);
+				}
+				e++;
+			}
+			//std::cout << " ";
+			for(auto edge : usedEdges)
+			{
+				auto target = edge.m_target;
+				int station = (target - 1) % stationCount;
+				int time = (target - 1) / stationCount;
+				//std::cout << station << "@" << time << " --> ";
+				std::cout << " " << edge << ", " << station << ", " << time << std::endl;
+			}
+			std::cout << "--------" << std::endl;
+
+			// battery graph
+			std::set<BatteryGraph::Edge, std::function<bool (BatteryGraph::Edge, BatteryGraph::Edge)>> usedBatteryEdges
+					(
+							[](BatteryGraph::Edge e1, BatteryGraph::Edge e2)
+							{
+								if(e1.m_source == e2.m_source)
+								{
+									return e1.m_target < e2.m_target;
+								}
+								else
+								{
+									return e1.m_source < e2.m_source;
+								}
+							}
+					);
+			e = 0;
+			for(auto edge : batteryEdges)
+			{
+				if(gvals[c * batteryEdges.size() + e] == 1)
+				{
+					usedBatteryEdges.insert(edge);
+				}
+				e++;
+			}
+			//std::cout << " ";
+			for(auto edge : usedBatteryEdges)
+			{
+				auto target = edge.m_target;
+				int charge = (target - 1) % 21;
+				int time = ((target - 1) / 21) + 1;
+				//std::cout << station << "@" << time << " --> ";
+				std::cout << " " << edge << ", " << charge << ", " << time << std::endl;
+			}
+			std::cout << std::endl;
 		}
 	}
 }

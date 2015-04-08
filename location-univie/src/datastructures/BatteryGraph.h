@@ -32,6 +32,73 @@ public:
 		return boost::num_edges(graph);
 	}
 
+	std::vector<Edge> allEdges()
+	{
+		std::vector<Edge> allEdges;
+		auto iters = boost::edges(graph);
+		for(auto iter = iters.first; iter != iters.second; iter++)
+		{
+			allEdges.push_back(*iter);
+		}
+		return allEdges;
+	}
+
+	std::vector<Edge> outgoingEdges()
+	{
+		std::vector<Edge> outgoingEdges;
+		auto iters = boost::out_edges(0, graph);
+		for(auto iter = iters.first; iter != iters.second; iter++)
+		{
+			outgoingEdges.push_back(*iter);
+		}
+		return outgoingEdges;
+	}
+
+	std::vector<Edge> incomingEdges(int chargestate, int time)
+	{
+		std::vector<Edge> incomingEdges;
+		auto iters = boost::in_edges(getVertex(chargestate, time), graph);
+		for(auto iter = iters.first; iter != iters.second; iter++)
+		{
+			incomingEdges.push_back(*iter);
+		}
+		return incomingEdges;
+	}
+
+	std::vector<Edge> outgoingEdges(int chargestate, int time)
+	{
+		std::vector<Edge> outgoingEdges;
+		auto iters = boost::out_edges(getVertex(chargestate, time), graph);
+		for(auto iter = iters.first; iter != iters.second; iter++)
+		{
+			outgoingEdges.push_back(*iter);
+		}
+		return outgoingEdges;
+	}
+
+	std::vector<Edge> tripArcs(Trip trip)
+	{
+		std::vector<Edge> arcs;
+		int consumptionInPercent = (int)(trip.getBatteryConsumption() * 100);
+		// round up to nearest stateskip
+		int roundedConsumption = consumptionInPercent;
+		if(roundedConsumption % stateskip != 0)
+		{
+			roundedConsumption += stateskip - roundedConsumption % stateskip;
+		}
+
+		for(int i = 100; i >= roundedConsumption; i -= stateskip)
+		{
+			if(trip.getBeginTime() == 0  &&  i < 100)
+			{
+				continue;
+			}
+			arcs.push_back(boost::edge(getVertex(i, trip.getBeginTime()), getVertex(i - roundedConsumption, trip.getEndTime()), graph).first);
+		}
+
+		return arcs;
+	}
+
 private:
 
 

@@ -70,6 +70,10 @@ BatteryGraph::BatteryGraph(CSLocationInstance instance_) :
 			{
 				continue;
 			}
+			if(boost::edge(getVertex(i, trip.getBeginTime()), getVertex(i - roundedConsumption, trip.getEndTime()), graph).second)
+			{
+				continue;
+			}
 			boost::add_edge(getVertex(i, trip.getBeginTime()), getVertex(i - roundedConsumption, trip.getEndTime()), graph);
 		}
 	}
