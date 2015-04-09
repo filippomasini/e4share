@@ -14,11 +14,12 @@
 namespace e4share
 {
 
-TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budget_) :
+TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budget_, bool useBatteryGraph_) :
 		instance(instance_),
 		batteryGraph(instance),
 		locationGraph(instance),
 		budget(budget_),
+		useBatteryGraph(useBatteryGraph_),
 		env(),
 		model(env)
 {
@@ -91,7 +92,16 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 
 	// flow in battery graph
 	int batteryEdgeCount = batteryGraph.edgeCount();
-	g = IloBoolVarArray(env, carCount * batteryEdgeCount);
+	int timeslots = instance.getMaxTime() + 1;
+	if(useBatteryGraph)
+	{
+		g = IloBoolVarArray(env, carCount * batteryEdgeCount);
+	}
+	else
+	{
+		g1 = IloNumVarArray(env, carCount * timeslots);
+	}
+
 	for(int c = 0; c < carCount; c++)
 	{
 		for(int e = 0; e < locationEdgeCount; e++)
@@ -99,10 +109,21 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 			f[c * locationEdgeCount + e] = IloBoolVar(env);
 		}
 
-		for(int e = 0; e < batteryEdgeCount; e++)
+		if(useBatteryGraph)
 		{
-			g[c * batteryEdgeCount + e] = IloBoolVar(env);
+			for(int e = 0; e < batteryEdgeCount; e++)
+			{
+				g[c * batteryEdgeCount + e] = IloBoolVar(env);
+			}
 		}
+		else
+		{
+			for(int e = 0; e < timeslots; e++)
+			{
+				g1[c * timeslots + e] = IloNumVar(env);
+			}
+		}
+
 	}
 
 
@@ -317,70 +338,113 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 	// BATTERY GRAPH FLOW
 	// only use selected cars
 
-	for(int c = 0; c < carCount; c++)
+	if(useBatteryGraph)
 	{
-		IloExpr carTrips(env);
-		IloExpr rootFlow(env);
-		for(int k = 0; k < tripCount; k++)
-		{
-			carTrips += a[k * carCount + c];
-		}
-		auto rootEdges = batteryGraph.outgoingEdges();
-		for(auto edge: rootEdges)
-		{
-			rootFlow += g[c * batteryEdgeCount + batEdgeIndex[edge]];
-		}
-		//model.add(rootFlow <= carTrips);
-		model.add(rootFlow == 1);
-		carTrips.end();
-		rootFlow.end();
-	}
-
-	// flow conservation
-	for(int c = 0; c < carCount; c++)
-	{
-		for(int charge = 0; charge <= 100; charge += 5)
-		{
-			for(int t = 1; t < instance.getMaxTime(); t++)
-			{
-				auto inEdges = batteryGraph.incomingEdges(charge, t);
-				auto outEdges = batteryGraph.outgoingEdges(charge, t);
-				IloExpr inFlow(env);
-				IloExpr outFlow(env);
-				for(auto edge : inEdges)
-				{
-					inFlow += g[c * batteryEdgeCount + batEdgeIndex[edge]];
-				}
-				for(auto edge : outEdges)
-				{
-					outFlow += g[c * batteryEdgeCount + batEdgeIndex[edge]];
-				}
-				model.add(inFlow == outFlow);
-				inFlow.end();
-				outFlow.end();
-			}
-		}
-	}
-
-	// flow for covered trips
-	for(int k = 0; k < tripCount; k++)
-	{
-		auto tripArcs = batteryGraph.tripArcs(instance.getTrips()[k]);
-		std::cout << tripArcs.size() << " trip arcs for trip " << k << std::endl;
-
 		for(int c = 0; c < carCount; c++)
 		{
-			IloExpr flow(env);
-
-			for(auto arc : tripArcs)
+			IloExpr carTrips(env);
+			IloExpr rootFlow(env);
+			for(int k = 0; k < tripCount; k++)
 			{
-				flow += g[c * batteryEdgeCount + batEdgeIndex[arc]];
+				carTrips += a[k * carCount + c];
 			}
-			model.add(flow == a[k * carCount + c]);
-			//model.add(flow == 0);
-			flow.end();
+			auto rootEdges = batteryGraph.outgoingEdges();
+			for(auto edge: rootEdges)
+			{
+				rootFlow += g[c * batteryEdgeCount + batEdgeIndex[edge]];
+			}
+			//model.add(rootFlow <= carTrips);
+			model.add(rootFlow == 1);
+			carTrips.end();
+			rootFlow.end();
+		}
+
+		// flow conservation
+		for(int c = 0; c < carCount; c++)
+		{
+			for(int charge = 0; charge <= 100; charge += 5)
+			{
+				for(int t = 1; t < instance.getMaxTime(); t++)
+				{
+					auto inEdges = batteryGraph.incomingEdges(charge, t);
+					auto outEdges = batteryGraph.outgoingEdges(charge, t);
+					IloExpr inFlow(env);
+					IloExpr outFlow(env);
+					for(auto edge : inEdges)
+					{
+						inFlow += g[c * batteryEdgeCount + batEdgeIndex[edge]];
+					}
+					for(auto edge : outEdges)
+					{
+						outFlow += g[c * batteryEdgeCount + batEdgeIndex[edge]];
+					}
+					model.add(inFlow == outFlow);
+					inFlow.end();
+					outFlow.end();
+				}
+			}
+		}
+
+		// flow for covered trips
+		for(int k = 0; k < tripCount; k++)
+		{
+			auto tripArcs = batteryGraph.tripArcs(instance.getTrips()[k]);
+			std::cout << tripArcs.size() << " trip arcs for trip " << k << std::endl;
+
+			for(int c = 0; c < carCount; c++)
+			{
+				IloExpr flow(env);
+
+				for(auto arc : tripArcs)
+				{
+					flow += g[c * batteryEdgeCount + batEdgeIndex[arc]];
+				}
+				model.add(flow == a[k * carCount + c]);
+				//model.add(flow == 0);
+				flow.end();
+			}
 		}
 	}
+	// alternative battery state tracking
+	else
+	{
+		// limits
+		for(int c = 0; c < carCount; c++)
+		{
+			for(int t = 0; t < timeslots; t++)
+			{
+				model.add(g1[c * timeslots + t] >= 0);
+				model.add(g1[c * timeslots + t] <= 1);
+			}
+			//model.add(g1[c * timeslots] == 1);
+		}
+
+		// recharging
+		for(int c = 0; c < carCount; c++)
+		{
+			for(int t = 0; t < timeslots - 1; t++)
+			{
+				model.add(g1[c * timeslots + (t+1)] <= g1[c * timeslots + t] + 0.1);
+			}
+		}
+
+		// depleting for trip
+		for(int c = 0; c < carCount; c++)
+		{
+			for(int k = 0; k < tripCount; k++)
+			{
+				auto trip = instance.getTrips()[k];
+				double roundedConsumption = (ceil(trip.getBatteryConsumption() * 20)) / (double)20;
+				std::cout << roundedConsumption << ", " << trip.getBatteryConsumption() << std::endl;
+				IloExpr rhs = g1[c * timeslots + trip.getBeginTime()] -
+						roundedConsumption * a[k * carCount + c] +
+						(1 - a[k * carCount + c]) * (trip.getEndTime() - trip.getBeginTime()) * 0.1;
+				model.add(g1[c * timeslots + trip.getEndTime()] <= rhs);
+				rhs.end();
+			}
+		}
+	}
+
 
 	//addModel();
 }
@@ -417,6 +481,7 @@ void TwoLayeredGraphsILP::solve()
 	auto zcvals = IloNumArray(env);
 	auto fvals = IloNumArray(env);
 	auto gvals = IloNumArray(env);
+	auto g1vals = IloNumArray(env);
 
 	cplex.getValues(lambdavals, lambda);
 	cplex.getValues(xvals, x);
@@ -425,7 +490,14 @@ void TwoLayeredGraphsILP::solve()
 	cplex.getValues(xcvals, xc);
 	cplex.getValues(zcvals, zc);
 	cplex.getValues(fvals, f);
-	cplex.getValues(gvals, g);
+	if(useBatteryGraph)
+	{
+		cplex.getValues(gvals, g);
+	}
+	else
+	{
+		cplex.getValues(g1vals, g1);
+	}
 
 	for(int i = 0; i < stationCount; i++)
 	{
@@ -558,39 +630,52 @@ void TwoLayeredGraphsILP::solve()
 			std::cout << "--------" << std::endl;
 
 			// battery graph
-			std::set<BatteryGraph::Edge, std::function<bool (BatteryGraph::Edge, BatteryGraph::Edge)>> usedBatteryEdges
-					(
-							[](BatteryGraph::Edge e1, BatteryGraph::Edge e2)
-							{
-								if(e1.m_source == e2.m_source)
-								{
-									return e1.m_target < e2.m_target;
-								}
-								else
-								{
-									return e1.m_source < e2.m_source;
-								}
-							}
-					);
-			e = 0;
-			for(auto edge : batteryEdges)
+			if(useBatteryGraph)
 			{
-				if(gvals[c * batteryEdges.size() + e] == 1)
+				std::set<BatteryGraph::Edge, std::function<bool (BatteryGraph::Edge, BatteryGraph::Edge)>> usedBatteryEdges
+						(
+								[](BatteryGraph::Edge e1, BatteryGraph::Edge e2)
+								{
+									if(e1.m_source == e2.m_source)
+									{
+										return e1.m_target < e2.m_target;
+									}
+									else
+									{
+										return e1.m_source < e2.m_source;
+									}
+								}
+						);
+				e = 0;
+				for(auto edge : batteryEdges)
 				{
-					usedBatteryEdges.insert(edge);
+					if(gvals[c * batteryEdges.size() + e] == 1)
+					{
+						usedBatteryEdges.insert(edge);
+					}
+					e++;
 				}
-				e++;
+				//std::cout << " ";
+				for(auto edge : usedBatteryEdges)
+				{
+					auto target = edge.m_target;
+					int charge = (target - 1) % 21;
+					int time = ((target - 1) / 21) + 1;
+					//std::cout << station << "@" << time << " --> ";
+					std::cout << " " << edge << ", " << charge << ", " << time << std::endl;
+				}
+				std::cout << std::endl;
 			}
-			//std::cout << " ";
-			for(auto edge : usedBatteryEdges)
+			// alternative tracking
+			else
 			{
-				auto target = edge.m_target;
-				int charge = (target - 1) % 21;
-				int time = ((target - 1) / 21) + 1;
-				//std::cout << station << "@" << time << " --> ";
-				std::cout << " " << edge << ", " << charge << ", " << time << std::endl;
+				int timeslots = instance.getMaxTime() + 1;
+				for(int t = 0; t < timeslots; t++)
+				{
+					std::cout << " t" << t << ": " << g1vals[c * timeslots + t] << std::endl;
+				}
 			}
-			std::cout << std::endl;
+
 		}
 	}
 }

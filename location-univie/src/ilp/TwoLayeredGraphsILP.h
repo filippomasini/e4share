@@ -19,7 +19,7 @@ namespace e4share
 class TwoLayeredGraphsILP
 {
 public:
-	TwoLayeredGraphsILP(CSLocationInstance instance_, int budget_);
+	TwoLayeredGraphsILP(CSLocationInstance instance_, int budget_, bool useBatteryGraph_);
 	void solve();
 
 private:
@@ -28,6 +28,7 @@ private:
 	LocationGraph locationGraph;
 
 	int budget;
+	bool useBatteryGraph;
 
 	IloEnv env;
 	IloModel model;
@@ -44,6 +45,7 @@ private:
 	IloBoolVarArray zc;
 	IloBoolVarArray f;
 	IloBoolVarArray g;
+	IloNumVarArray g1;
 
 	void addModel();
 };

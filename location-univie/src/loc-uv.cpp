@@ -21,12 +21,14 @@ int main(int argc, const char* argv[])
 	register_handler();
 	std::string filename;
 	int budget;
+	bool useBatteryGraph = true;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
 		("help,h", "produce help message")
 		("file,f", po::value<std::string>(&filename)->required(), "input file to be processed")
 		("budget,b", po::value<int>(&budget)->required(), "budget available")
+		("batterygraph", po::value<bool>(&useBatteryGraph), "whether to use a time-expanded battery graph or not")
 	;
 
 	po::variables_map vm;
@@ -63,7 +65,7 @@ int main(int argc, const char* argv[])
 
 	std::cout << "maxTime: " << instance.getMaxTime() << std::endl;
 
-	TwoLayeredGraphsILP ilp(instance, budget);
+	TwoLayeredGraphsILP ilp(instance, budget, useBatteryGraph);
 	ilp.solve();
 
 	//LocationGraph locationGraph(instance);
