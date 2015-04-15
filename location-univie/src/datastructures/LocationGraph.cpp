@@ -58,6 +58,10 @@ LocationGraph::LocationGraph(CSLocationInstance& instance_) :
 		{
 			for(int destinationstation : destinationStations)
 			{
+				if(boost::edge(getVertex(originstation, trip.getBeginTime()), getVertex(destinationstation, trip.getEndTime()), graph).second)
+				{
+					continue;
+				}
 				//std::cout << originstation << ", " << destinationstation << std::endl;
 				boost::add_edge(getVertex(originstation, trip.getBeginTime()), getVertex(destinationstation, trip.getEndTime()), graph);
 			}
