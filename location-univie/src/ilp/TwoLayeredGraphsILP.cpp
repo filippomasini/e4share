@@ -11,6 +11,9 @@
 #include <map>
 #include <set>
 
+#include <fstream>
+#include <iostream>
+
 namespace e4share
 {
 
@@ -29,42 +32,74 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 	int carCount = instance.getCarCount();
 
 	// stations
-	y = IloBoolVarArray(env, stationCount);
-	s = IloIntVarArray(env, stationCount);
+	//y = IloBoolVarArray(env, stationCount);
+	y = IloNumVarArray(env, stationCount);
+	//s = IloIntVarArray(env, stationCount);
+	s = IloNumVarArray(env, stationCount);
 	for(int i = 0; i < stationCount; i++)
 	{
 		y[i] = IloBoolVar(env);
+//		y[i] = IloNumVar(env);
+//		model.add(y[i] >= 0);
+//		model.add(y[i] <= 1);
 		s[i] = IloIntVar(env);
+		s[i] = IloNumVar(env);
 	}
 
 	// trips and trip assignment
-	lambda = IloBoolVarArray (env, tripCount);
-	x = IloBoolVarArray(env, stationCount * tripCount);
-	z = IloBoolVarArray(env, stationCount * tripCount);
-	a = IloBoolVarArray(env, carCount * tripCount);
-	xc = IloBoolVarArray(env, carCount * stationCount * tripCount);
-	zc = IloBoolVarArray(env, carCount * stationCount * tripCount);
+//	lambda = IloBoolVarArray (env, tripCount);
+//	x = IloBoolVarArray(env, stationCount * tripCount);
+//	z = IloBoolVarArray(env, stationCount * tripCount);
+//	a = IloBoolVarArray(env, carCount * tripCount);
+//	xc = IloBoolVarArray(env, carCount * stationCount * tripCount);
+//	zc = IloBoolVarArray(env, carCount * stationCount * tripCount);
+
+	lambda = IloNumVarArray (env, tripCount);
+	x = IloNumVarArray(env, stationCount * tripCount);
+	z = IloNumVarArray(env, stationCount * tripCount);
+	a = IloNumVarArray(env, carCount * tripCount);
+	xc = IloNumVarArray(env, carCount * stationCount * tripCount);
+	zc = IloNumVarArray(env, carCount * stationCount * tripCount);
+
 	for(int k = 0; k < tripCount; k++)
 	{
 		lambda[k] = IloBoolVar(env);
+//		lambda[k] = IloNumVar(env);
+//		model.add(lambda[k] >= 0);
+//		model.add(lambda[k] <= 1);
 
 		for(int i = 0; i < stationCount; i++)
 		{
 			int index = k * stationCount + i;
 			x[index] = IloBoolVar(env);
+//			x[index] = IloNumVar(env);
+//			model.add(x[index] >= 0);
+//			model.add(x[index] <= 1);
 			z[index] = IloBoolVar(env);
+//			z[index] = IloNumVar(env);
+//			model.add(z[index] >= 0);
+//			model.add(z[index] <= 1);
 		}
 
 		for(int c = 0; c < carCount; c++)
 		{
 			int index = k * carCount + c;
 			a[index] = IloBoolVar(env);
+//			a[index] = IloNumVar(env);
+//			model.add(a[index] >= 0);
+//			model.add(a[index] <= 1);
 
 			for(int i = 0; i < stationCount; i++)
 			{
 				int index2 = k * stationCount * carCount + c * stationCount + i;
 				xc[index2] = IloBoolVar(env);
+//				xc[index2] = IloNumVar(env);
+//				model.add(xc[index2] >= 0);
+//				model.add(xc[index2] <= 1);
 				zc[index2] = IloBoolVar(env);
+//				zc[index2] = IloNumVar(env);
+//				model.add(zc[index2] >= 0);
+//				model.add(zc[index2] <= 1);
 			}
 		}
 	}
@@ -88,14 +123,16 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 
 	// flow in location graph
 	int locationEdgeCount = locationGraph.edgeCount();
-	f = IloBoolVarArray(env, carCount * locationEdgeCount);
+	//f = IloBoolVarArray(env, carCount * locationEdgeCount);
+	f = IloNumVarArray(env, carCount * locationEdgeCount);
 
 	// flow in battery graph
 	int batteryEdgeCount = batteryGraph.edgeCount();
 	int timeslots = instance.getMaxTime() + 1;
 	if(useBatteryGraph)
 	{
-		g = IloBoolVarArray(env, carCount * batteryEdgeCount);
+		//g = IloBoolVarArray(env, carCount * batteryEdgeCount);
+		g = IloNumVarArray(env, carCount * batteryEdgeCount);
 	}
 	else
 	{
@@ -107,6 +144,9 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 		for(int e = 0; e < locationEdgeCount; e++)
 		{
 			f[c * locationEdgeCount + e] = IloBoolVar(env);
+//			f[c * locationEdgeCount + e] = IloNumVar(env);
+//			model.add(f[c * locationEdgeCount + e] >= 0);
+//			model.add(f[c * locationEdgeCount + e] <= 1);
 		}
 
 		if(useBatteryGraph)
@@ -114,6 +154,9 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 			for(int e = 0; e < batteryEdgeCount; e++)
 			{
 				g[c * batteryEdgeCount + e] = IloBoolVar(env);
+//				g[c * batteryEdgeCount + e] = IloNumVar(env);
+//				model.add(g[c * batteryEdgeCount + e] >= 0);
+//				model.add(g[c * batteryEdgeCount + e] <= 1);
 			}
 		}
 		else
@@ -508,7 +551,7 @@ void TwoLayeredGraphsILP::solve()
 	{
 		std::cout << "lambda[" << k << "]: " << lambdavals[k] << std::endl;
 
-		if(lambdavals[k] == 1)
+		if(lambdavals[k] > 0)
 		{
 			/*std::cout << " candidate starts: ";
 			for(auto station : instance.getNetwork().findNearbyStations(instance.getTrips()[k].getOrigin()))
@@ -527,7 +570,7 @@ void TwoLayeredGraphsILP::solve()
 			for(int i = 0; i < stationCount; i++)
 			{
 				int index = k * stationCount + i;
-				if(xvals[index] > 0.5)
+				if(xvals[index] > 0.50)
 				{
 					std::cout << " startstation " << i << std::endl;
 				}
@@ -535,7 +578,7 @@ void TwoLayeredGraphsILP::solve()
 				{
 					std::cout << " startstation " << i << ": " << xvals[index] << std::endl;
 				}*/
-				if(zvals[index] > 0.5)
+				if(zvals[index] > 0)
 				{
 					std::cout << " endstation " << i << std::endl;
 				}
@@ -548,7 +591,7 @@ void TwoLayeredGraphsILP::solve()
 			for(int c = 0; c < carCount; c++)
 			{
 				int index = k * carCount + c;
-				if(avals[index] == 1)
+				if(avals[index] > 0)
 				{
 					std::cout << " car " << c << std::endl;
 				}
@@ -557,11 +600,11 @@ void TwoLayeredGraphsILP::solve()
 				for(int i = 0; i < stationCount; i++)
 				{
 					int index2 = k * stationCount * carCount + c * stationCount + i;
-					if(xcvals[index2] == 1)
+					if(xcvals[index2] > 0)
 					{
 						std::cout << " xc(k=" << k << ",i=" << i << ",c=" << c << ")  == " << xcvals[index2] << std::endl;
 					}
-					if(zcvals[index2] == 1)
+					if(zcvals[index2] > 0)
 					{
 						std::cout << " zc(k=" << k << ",i=" << i << ",c=" << c << ")  == " << zcvals[index2] << std::endl;
 					}
@@ -589,7 +632,7 @@ void TwoLayeredGraphsILP::solve()
 			std::cout << "car " << c << " with " << assignedTrips << " assigned trips: ";
 			for(int k = 0; k < tripCount; k++)
 			{
-				if(avals[k * carCount + c] == 1)
+				if(avals[k * carCount + c] > 0)
 				{
 					std::cout << k << ", ";
 				}
@@ -612,7 +655,7 @@ void TwoLayeredGraphsILP::solve()
 			int e = 0;
 			for(auto edge : edges)
 			{
-				if(fvals[c * edges.size() + e] == 1)
+				if(fvals[c * edges.size() + e] > 0)
 				{
 					usedEdges.insert(edge);
 				}
@@ -649,7 +692,7 @@ void TwoLayeredGraphsILP::solve()
 				e = 0;
 				for(auto edge : batteryEdges)
 				{
-					if(gvals[c * batteryEdges.size() + e] == 1)
+					if(gvals[c * batteryEdges.size() + e] > 0)
 					{
 						usedBatteryEdges.insert(edge);
 					}
@@ -678,6 +721,124 @@ void TwoLayeredGraphsILP::solve()
 
 		}
 	}
+
+	drawSolutionTikz("solution.tex", fvals);
+}
+
+void TwoLayeredGraphsILP::drawSolutionTikz(std::string filename, IloNumArray fvals)
+{
+	int stationCount = instance.getNetwork().getCandidateStations().size();
+	int tripCount = instance.getTrips().size();
+	int carCount = instance.getCarCount();
+	int locationEdgeCount = locationGraph.edgeCount();
+	std::map<LocationGraph::Edge, int> locEdgeIndex;
+	int edgeIndex = 0;
+	for(LocationGraph::Edge e : locationGraph.allEdges())
+	{
+		locEdgeIndex[e] = edgeIndex;
+		edgeIndex++;
+	}
+
+	std::ofstream tikzfile;
+	tikzfile.open(filename);
+	tikzfile << "\\documentclass{article}" << std::endl;
+	tikzfile << "\\usepackage[landscape]{geometry}" << std::endl;
+	tikzfile << "\\usepackage{tikz}" << std::endl;
+	tikzfile << "\\begin{document}" << std::endl << std::endl;
+
+	for(int c = 0; c < carCount; c++)
+	{
+		// check which stations are visited by car c
+		int stationsVisited = 0;
+		std::vector<bool> stationUsed(stationCount);
+		for(int i = 0; i < stationCount; i++)
+		{
+			stationUsed[i] = false;
+			for(int t = 0; t <= instance.getMaxTime(); t++)
+			{
+				auto inEdges = locationGraph.incomingEdges(i, t);
+				for(auto edge : inEdges)
+				{
+					if(fvals[c * locationEdgeCount + locEdgeIndex[edge]] > 0)
+					{
+						stationUsed[i] = true;
+					}
+				}
+			}
+		}
+
+		for(int i = 0; i < stationCount; i++)
+		{
+			if(stationUsed[i])
+			{
+				stationsVisited++;
+			}
+		}
+
+//		auto target = edge.m_target;
+//						int station = (target - 1) % stationCount;
+//						int time = (target - 1) / stationCount;
+
+		tikzfile << "\\begin{figure}" << std::endl;
+		tikzfile << "\\centering" << std::endl;
+		tikzfile << "\\caption{car " << c << "}" << std::endl;
+		tikzfile << "\\begin{tikzpicture}" << std::endl;
+
+		//tikzfile << (stationsVisited - 1) / 2 << std::endl;
+		//tikzfile << ((stationsVisited - 1) / 2) << std::endl;
+		tikzfile << "\\node (r) at (" << (stationsVisited - 1) / 2 << ", 1) {$r$};" << std::endl;
+
+		// draw vertices
+		int xcounter = 0;
+		for(int i = 0; i < stationCount; i++)
+		{
+			if(stationUsed[i])
+			{
+				for(int t = 0; t <= instance.getMaxTime(); t++)
+				{
+					tikzfile << "\\node (" << i << "-" << t << ") at (" << xcounter << ", -" << t << ") {" << i << "};" << std::endl;
+				}
+				xcounter++;
+			}
+		}
+
+		// draw arcs
+		tikzfile << "\\draw" << std::endl;
+		for(int i = 0; i < stationCount; i++)
+		{
+			if(stationUsed[i])
+			{
+				for(int t = 0; t <= instance.getMaxTime(); t++)
+				{
+					auto inEdges = locationGraph.incomingEdges(i, t);
+					for(auto edge : inEdges)
+					{
+						std::string source = "r";
+						if(edge.m_source > 0)
+						{
+							int stat = (edge.m_source - 1) % stationCount;
+							int time = (edge.m_source - 1) / stationCount;
+							std::stringstream temp;
+							temp << stat << "-" << time;
+							source = temp.str();
+						}
+						double fval = fvals[c * locationEdgeCount + locEdgeIndex[edge]] > 0;
+						if(fval > 0)
+						{
+							tikzfile << "(" << source << ") -- (" << i << "-" << t << ") node [midway, above, font = \\tiny] {" << fval << "}" << std::endl;
+						}
+					}
+				}
+			}
+		}
+		tikzfile << ";" << std::endl;
+
+		tikzfile << "\\end{tikzpicture}" << std::endl;
+		tikzfile << "\\end{figure}" << std::endl;
+		tikzfile << "\\clearpage" << std::endl << std::endl;
+	}
+	tikzfile << "\\end{document}" << std::endl;
+	tikzfile.close();
 }
 
 } /* namespace e4share */
