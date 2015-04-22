@@ -91,15 +91,15 @@ def writeInstance(width, height, stationCount, maxCapacity, tripCount, minBatter
 
 
 # iterate through possible values
-for dimensions in [(10, 10), (10, 20), (20, 20), (20, 30), (30, 30)]:
-	for stationCount in [10, 20, 30, 40, 50]:
-		for maxCapacity in [10, 20]:
-			for tripCount in [10, 20, 30, 40, 50, 75, 100]:
-				for batteryLimits in [(1, 50), (40, 100), (1, 100)]:
+for dimensions in [(30, 30)]:
+	for stationCount in [10, 25, 50]:
+		for maxCapacity in [20]:
+			for tripCount in [10, 25, 50, 75, 100]:
+				for batteryLimits in [(1, 50), (1, 100)]:
 					for uniformProfit in [True, False]:
 						for carCount in [tripCount, round(tripCount / 2), round(tripCount / 5)]:
-							for maxTime in [10, 15, 30]:
-								for index in [1, 2, 3, 4, 5]:
+							for maxTime in [15, 30]:
+								for index in [1, 2, 3]:
 									writeInstance(dimensions[0], dimensions[1], stationCount, maxCapacity, tripCount, batteryLimits[0], batteryLimits[1], uniformProfit, carCount, maxTime, index)
 	
 
