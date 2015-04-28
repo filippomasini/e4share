@@ -28,7 +28,7 @@ public:
 	typedef Graph::vertex_descriptor Vertex;
 	typedef Graph::edge_descriptor Edge;
 
-	StreetNetwork();
+	StreetNetwork(int walkingdistance_);
 
 	const std::vector<ChargingStation>& getCandidateStations() const
 	{
@@ -56,6 +56,8 @@ public:
 private:
 	Graph network;
 	std::vector<ChargingStation> candidateStations;
+
+	int walkingDistance;
 };
 
 } /* namespace e4share */

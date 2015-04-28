@@ -1,26 +1,33 @@
 /*
- * TempFormatReader.cpp
+ * DummyFormatReader.cpp
  *
  *      Author: Georg Brandstätter
  */
 
-#include "TempFormatReader.h"
+#include "input/DummyFormatReader.h"
 
 #include <fstream>
 
 namespace e4share
 {
 
-TempFormatReader::TempFormatReader()
+DummyFormatReader::DummyFormatReader(int walkingDistance_) :
+		walkingDistance(walkingDistance_)
 {
 	// TODO Auto-generated constructor stub
 
 }
 
-CSLocationInstance TempFormatReader::readInstance(std::string filename)
+CSLocationInstance DummyFormatReader::readInstance(std::string filename)
 {
-	std::ifstream instancefile;
-	instancefile.open(filename);
+	std::string toignore;
+	std::ifstream instancefile(filename);
+	//instancefile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+
+	// ignore comment line
+	//std::getline(instancefile, toignore);
+	instancefile.ignore(1024, '\n');
+	std::cout << instancefile << std::endl;
 
 	// first line:
 	// vertexCount edgeCount stationCount carCount tripCount
@@ -40,24 +47,41 @@ CSLocationInstance TempFormatReader::readInstance(std::string filename)
 	int tripCount;
 	instancefile >> tripCount;
 
-
+	std::cout << vertexCount << "," << edgeCount << std::endl;
+	std::cout << instancefile << std::endl;
 	// create vertices
-	StreetNetwork network(2);
+	StreetNetwork network(walkingDistance);
 	for(int i = 0; i < vertexCount; i++)
 	{
 		network.addVertex();
+	}
+
+	// ignore comment lines
+	for(int i = 0; i < 6; i++)
+	{
+		instancefile >> toignore;
+		std::cout << toignore << std::endl;
 	}
 
 	// next edgeCount lines:
 	// source target distance
 	for(int i = 0; i < edgeCount; i++)
 	{
+		//std::cout << "blah" << std::endl;
 		StreetNetwork::Vertex source, target;
 		int distance;
 		instancefile >> source;
 		instancefile >> target;
 		instancefile >> distance;
 		network.addArcPair(source, target, distance);
+		//std::cout << source << "," << target << "," << distance << std::endl;
+	}
+
+	// ignore comment lines
+	for(int i = 0; i < 7; i++)
+	{
+		instancefile >> toignore;
+		std::cout << toignore << std::endl;
 	}
 
 	// next stationCount lines:
@@ -73,6 +97,13 @@ CSLocationInstance TempFormatReader::readInstance(std::string filename)
 		network.addChargingStation(location, cost, costPerSlot, capacity);
 	}
 
+	// ignore comment lines
+	for(int i = 0; i < 9; i++)
+	{
+		instancefile >> toignore;
+		std::cout << toignore << std::endl;
+	}
+
 	// next tripCount lines:
 	// origin destination beginTime endTime batteryConsumption profit
 	std::vector<Trip> trips;
@@ -80,7 +111,7 @@ CSLocationInstance TempFormatReader::readInstance(std::string filename)
 	{
 		StreetNetwork::Vertex origin, destination;
 		int beginTime, endTime, profit;
-		double batteryConsumption;
+		int batteryConsumption;
 		instancefile >> origin;
 		instancefile >> destination;
 		instancefile >> beginTime;

@@ -12,6 +12,7 @@ namespace po = boost::program_options;
 #include "datastructures/BatteryGraph.h"
 #include "ilp/TwoLayeredGraphsILP.h"
 #include "input/TempFormatReader.h"
+#include "input/DummyFormatReader.h"
 #include "stacktrace.h"
 
 using namespace e4share;
@@ -22,6 +23,7 @@ int main(int argc, const char* argv[])
 	std::string filename;
 	int budget;
 	bool useBatteryGraph = true;
+	int walkingDistance = 10;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
@@ -29,6 +31,7 @@ int main(int argc, const char* argv[])
 		("file,f", po::value<std::string>(&filename)->required(), "input file to be processed")
 		("budget,b", po::value<int>(&budget)->required(), "budget available")
 		("batterygraph", po::value<bool>(&useBatteryGraph), "whether to use a time-expanded battery graph or not")
+		("walk,w", po::value<int>(&walkingDistance), "maximum distance a customer will walk")
 	;
 
 	po::variables_map vm;
@@ -43,7 +46,8 @@ int main(int argc, const char* argv[])
 	// this way, we can call the program with -h without having to provide all required options
 	po::notify(vm);
 
-	TempFormatReader reader;
+	//TempFormatReader reader;
+	DummyFormatReader reader(walkingDistance);
 	auto instance = reader.readInstance(filename);
 
 	// check

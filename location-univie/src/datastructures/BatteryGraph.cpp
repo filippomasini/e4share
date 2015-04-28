@@ -55,7 +55,8 @@ BatteryGraph::BatteryGraph(CSLocationInstance instance_) :
 		auto origin = trip.getOrigin();
 		auto destination = trip.getDestination();
 		//std::cout << "trip: " << origin << ", " << destination << std::endl;
-		int consumptionInPercent = (int)(trip.getBatteryConsumption() * 100);
+		//int consumptionInPercent = (int)(trip.getBatteryConsumption() * 100);
+		int consumptionInPercent = trip.getBatteryConsumption();
 		// round up to nearest stateskip
 		int roundedConsumption = consumptionInPercent;
 		if(roundedConsumption % stateskip != 0)

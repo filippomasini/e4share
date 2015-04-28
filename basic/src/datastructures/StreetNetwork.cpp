@@ -11,9 +11,10 @@
 namespace e4share
 {
 
-StreetNetwork::StreetNetwork() :
+StreetNetwork::StreetNetwork(int walkingDistance_) :
 		network(),
-		candidateStations()
+		candidateStations(),
+		walkingDistance(walkingDistance_)
 {
 
 }
@@ -64,7 +65,7 @@ std::vector<int> StreetNetwork::findNearbyStations(Vertex vertex) const
 		if(network[*v].is_initialized())
 		{
 			//if(network[*v].is_initialized())// != boost::none)
-			if(distance[*v] < 3)
+			if(distance[*v] <= walkingDistance)
 			{
 				//stations.push_back(*network[*v]);
 				stations.push_back(i);

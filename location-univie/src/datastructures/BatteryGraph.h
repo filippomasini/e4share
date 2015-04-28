@@ -79,7 +79,8 @@ public:
 	std::vector<Edge> tripArcs(Trip trip)
 	{
 		std::vector<Edge> arcs;
-		int consumptionInPercent = (int)(trip.getBatteryConsumption() * 100);
+		//int consumptionInPercent = (int)(trip.getBatteryConsumption() * 100);
+		int consumptionInPercent =trip.getBatteryConsumption();
 		// round up to nearest stateskip
 		int roundedConsumption = consumptionInPercent;
 		if(roundedConsumption % stateskip != 0)
