@@ -1,6 +1,7 @@
 import sys
 import random
 import math
+import networkx
 
 def writeInstance(width, height, stationCount, maxCapacity, tripCount, minBattery, maxBattery, uniformProfit, carCount, maxTime, index):
 	if(uniformProfit):
@@ -15,8 +16,10 @@ def writeInstance(width, height, stationCount, maxCapacity, tripCount, minBatter
 	randomstate = random.getstate()
 	
 	#print(filename)
+	graph = networkx.Graph()
 	vertexCount = width * height
-	vertices = range(0, vertexCount)
+	graph.add_nodes_from(range(0, vertexCount))
+	#vertices = range(0, vertexCount)
 	edgeCount = (width - 1) * height + (height - 1) * width
 	if(stationCount > vertexCount):
 		stationCount = vertexCount
@@ -27,26 +30,55 @@ def writeInstance(width, height, stationCount, maxCapacity, tripCount, minBatter
 			vertex = y * width + x
 			if(x < (width - 1)):
 				distance = random.randrange(1, 6)
+				graph.add_edge(vertex, vertex + 1, distance=distance)
 				edge = (vertex, vertex + 1, distance)
 				edges.append(edge)
 			if(y < (height - 1)):
 				distance = random.randrange(1, 6)
+				graph.add_edge(vertex, vertex + width, distance=distance)
 				edge = (vertex, vertex + width, distance)
 				edges.append(edge)
 
 	stations = list()
-	selectedLocations = random.sample(vertices, stationCount)
+	selectedLocations = random.sample(graph.nodes(), stationCount)
 	for loc in selectedLocations:
 		cost = random.randrange(100, 1001)
 		costPerSlot = random.randrange(10, 201)
 		capacity = random.randrange(1, maxCapacity + 1)
 		stations.append((loc, cost, costPerSlot, capacity))
 	stations = sorted(stations, key = lambda station: station[0])
+	
+	# find all locations within <= 10 of any station
+	auxGraph = graph.copy()
+	auxGraph.add_node("root")
+	for loc in selectedLocations:
+		auxGraph.add_edge("root", loc, distance = 0)
+	distanceDict = networkx.single_source_dijkstra_path_length(auxGraph, "root", weight = "distance", cutoff = 10)
+	closeLocations = distanceDict.keys()
+	
+	# verify
+	# close = list()
+	# far = list()
+	# for loc in graph.nodes():
+		# if(loc in closeLocations):
+			# tempDistances = networkx.single_source_dijkstra_path_length(graph, loc, weight = "distance")
+			# stationDistances = list()
+			# for station in selectedLocations:
+				# stationDistances.append(tempDistances[station])
+			# close.append(min(stationDistances))
+		# else:
+			# tempDistances = networkx.single_source_dijkstra_path_length(graph, loc, weight = "distance")
+			# stationDistances = list()
+			# for station in selectedLocations:
+				# stationDistances.append(tempDistances[station])
+			# far.append(min(stationDistances))
+	# print("max close: " + str(max(close)))
+	# print("min far: " + str(min(far)))
 
 	trips = list()
 	for i in range(0, tripCount):
-		origin = random.choice(vertices)
-		destination = random.choice(vertices)
+		origin = random.choice(list(closeLocations))
+		destination = random.choice(list(closeLocations))
 		begintime = random.randrange(0, maxTime)
 		endtime = random.randrange(begintime + 1, maxTime + 1)
 		batteryconsumption = random.randrange(minBattery, maxBattery + 1)
@@ -68,10 +100,11 @@ def writeInstance(width, height, stationCount, maxCapacity, tripCount, minBatter
 	
 	instancefile.write("# edges\n")
 	instancefile.write("# source target distance\n")
-	for edge in edges:
-		for part in edge:
-			instancefile.write(str(part) + " ")
-		instancefile.write("\n")
+	for edge in graph.edges(data = True):
+		instancefile.write(str(edge[0]) + " " + str(edge[1]) + " " + str(edge[2]['distance']) + "\n")
+		#for part in edge:
+		#	instancefile.write(str(part) + " ")
+		#instancefile.write("\n")
 	
 	instancefile.write("# stations\n")
 	instancefile.write("# location cost costPerSlot capacity\n")
