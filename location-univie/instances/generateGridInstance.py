@@ -55,6 +55,8 @@ def writeInstance(width, height, stationCount, maxCapacity, tripCount, minBatter
 		auxGraph.add_edge("root", loc, distance = 0)
 	distanceDict = networkx.single_source_dijkstra_path_length(auxGraph, "root", weight = "distance", cutoff = 10)
 	closeLocations = distanceDict.keys()
+	# remove artificial root vertex from our list of potential origins/destinations
+	del distanceDict['root']
 	
 	# verify
 	# close = list()
