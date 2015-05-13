@@ -3,12 +3,12 @@ import random
 import math
 import networkx
 
-def writeInstance(width, height, stationCount, maxCapacity, tripCount, minBattery, maxBattery, uniformProfit, carCount, maxTime, index):
+def writeInstance(width, height, stationCount, maxCapacity, tripCount, minBattery, maxBattery, uniformProfit, maxTime, index):
 	if(uniformProfit):
 		profitStr = "uniform"
 	else:
 		profitStr = "nonuniform"
-	filename = "%ix%i-s%i-cap%i-k%i-b%i-%i-%s-c%i-t%i-%i.loc" % (width, height, stationCount, maxCapacity, tripCount, minBattery, maxBattery, profitStr, carCount, maxTime, index)
+	filename = "%ix%i-s%i-cap%i-k%i-b%i-%i-t%i-%i.loc" % (width, height, stationCount, maxCapacity, tripCount, minBattery, maxBattery, maxTime, index)
 	# parameters for calculating a trip's profit
 	alpha = 2
 	gamma = 1
@@ -97,8 +97,8 @@ def writeInstance(width, height, stationCount, maxCapacity, tripCount, minBatter
 	
 	# write instance file
 	instancefile = open(filename, "w")
-	instancefile.write("# vertexCount edgeCount stationCount carCount tripCount\n")
-	instancefile.write("%i %i %i %i %i\n" % (vertexCount, edgeCount, stationCount, carCount, tripCount))
+	instancefile.write("# vertexCount edgeCount stationCount tripCount\n")
+	instancefile.write("%i %i %i %i\n" % (vertexCount, edgeCount, stationCount, tripCount))
 	
 	instancefile.write("# edges\n")
 	instancefile.write("# source target distance\n")
@@ -131,11 +131,9 @@ for dimensions in [(30, 30)]:
 		for maxCapacity in [20]:
 			for tripCount in [10, 25, 50, 75, 100]:
 				for batteryLimits in [(1, 50), (1, 100)]:
-					for uniformProfit in [True, False]:
-						for carCount in [tripCount, round(tripCount / 2), round(tripCount / 5)]:
-							for maxTime in [15, 30]:
-								for index in [1, 2, 3]:
-									writeInstance(dimensions[0], dimensions[1], stationCount, maxCapacity, tripCount, batteryLimits[0], batteryLimits[1], uniformProfit, carCount, maxTime, index)
+					for maxTime in [15, 30]:
+						for index in [1, 2, 3]:
+							writeInstance(dimensions[0], dimensions[1], stationCount, maxCapacity, tripCount, batteryLimits[0], batteryLimits[1], False, maxTime, index)
 	
 
 
