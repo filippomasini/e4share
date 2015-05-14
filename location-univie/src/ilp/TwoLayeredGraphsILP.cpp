@@ -39,6 +39,7 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 	for(int i = 0; i < stationCount; i++)
 	{
 		y[i] = IloBoolVar(env);
+		y[i].setBounds(0, 1);
 //		y[i] = IloNumVar(env);
 //		model.add(y[i] >= 0);
 //		model.add(y[i] <= 1);
@@ -363,7 +364,7 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 				{
 					flowToDestinations += f[c * locationEdgeCount + locEdgeIndex[arc]];
 				}
-				model.add(flowToDestinations == xc[k * stationCount * carCount + c * stationCount + i]);
+				//model.add(flowToDestinations == xc[k * stationCount * carCount + c * stationCount + i]);
 				flowToDestinations.end();
 
 				IloExpr flowFromOrigins(env);
@@ -371,7 +372,7 @@ TwoLayeredGraphsILP::TwoLayeredGraphsILP(CSLocationInstance instance_, int budge
 				{
 					flowFromOrigins += f[c * locationEdgeCount + locEdgeIndex[arc]];
 				}
-				model.add(flowFromOrigins == zc[k * stationCount * carCount + c * stationCount + i]);
+				//model.add(flowFromOrigins == zc[k * stationCount * carCount + c * stationCount + i]);
 				flowFromOrigins.end();
 			}
 		}

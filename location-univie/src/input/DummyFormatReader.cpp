@@ -18,7 +18,7 @@ DummyFormatReader::DummyFormatReader(int walkingDistance_) :
 
 }
 
-CSLocationInstance DummyFormatReader::readInstance(std::string filename)
+CSLocationInstance DummyFormatReader::readInstance(std::string filename, int carCount, bool uniformProfit)
 {
 	std::string toignore;
 	std::ifstream instancefile(filename);
@@ -30,7 +30,7 @@ CSLocationInstance DummyFormatReader::readInstance(std::string filename)
 	std::cout << instancefile << std::endl;
 
 	// first line:
-	// vertexCount edgeCount stationCount carCount tripCount
+	// vertexCount edgeCount stationCount tripCount
 
 	int vertexCount;
 	instancefile >> vertexCount;
@@ -41,8 +41,8 @@ CSLocationInstance DummyFormatReader::readInstance(std::string filename)
 	int stationCount;
 	instancefile >> stationCount;
 
-	int carCount;
-	instancefile >> carCount;
+	//int carCount;
+	//instancefile >> carCount;
 
 	int tripCount;
 	instancefile >> tripCount;
@@ -118,7 +118,11 @@ CSLocationInstance DummyFormatReader::readInstance(std::string filename)
 		instancefile >> endTime;
 		instancefile >> batteryConsumption;
 		instancefile >> profit;
-		Trip trip(network, origin, destination, beginTime, endTime, batteryConsumption, profit);
+		if(uniformProfit)
+		{
+			profit = 1;
+		}
+		Trip trip(i, network, origin, destination, beginTime, endTime, batteryConsumption, profit);
 		trips.push_back(trip);
 	}
 

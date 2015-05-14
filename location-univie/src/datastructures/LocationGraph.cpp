@@ -12,7 +12,8 @@ namespace e4share
 LocationGraph::LocationGraph(CSLocationInstance& instance_) :
 		instance(instance_),
 		stationCount(instance.getNetwork().getCandidateStations().size()),
-		graph()
+		graph(),
+		tripArcs()
 {
 	// artificial root vertex, for initial allocation
 	Vertex root = boost::add_vertex(graph);
@@ -48,13 +49,14 @@ LocationGraph::LocationGraph(CSLocationInstance& instance_) :
 	auto allStations = instance.getNetwork().getCandidateStations();
 	for(Trip trip : trips)
 	{
+		std::vector<Edge> assocEdges;
 		auto origin = trip.getOrigin();
 		auto destination = trip.getDestination();
 		//std::cout << "trip: " << origin << ", " << destination << std::endl;
 		std::vector<int> originStations = instance.getNetwork().findNearbyStations(origin);
 		std::vector<int> destinationStations = instance.getNetwork().findNearbyStations(destination);
 
-		std::cout << "stations: " << originStations.size() << ", " << destinationStations.size() << std::endl;
+		//std::cout << "stations: " << originStations.size() << ", " << destinationStations.size() << std::endl;
 
 		for(int originstation : originStations)
 		{
@@ -64,10 +66,12 @@ LocationGraph::LocationGraph(CSLocationInstance& instance_) :
 				{
 					continue;
 				}
-				std::cout << originstation << ", " << destinationstation << std::endl;
-				boost::add_edge(getVertex(originstation, trip.getBeginTime()), getVertex(destinationstation, trip.getEndTime()), graph);
+				//std::cout << originstation << ", " << destinationstation << std::endl;
+				auto newEdge = boost::add_edge(getVertex(originstation, trip.getBeginTime()), getVertex(destinationstation, trip.getEndTime()), graph);
+				assocEdges.push_back(newEdge.first);
 			}
 		}
+		tripArcs[trip] = assocEdges;
 	}
 
 	//std::cout << boost::num_vertices(graph) << ", " << boost::num_edges(graph) << std::endl;

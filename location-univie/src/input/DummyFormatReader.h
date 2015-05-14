@@ -18,7 +18,7 @@ class DummyFormatReader
 {
 public:
 	DummyFormatReader(int walkingDistance_);
-	CSLocationInstance readInstance(std::string filename);
+	CSLocationInstance readInstance(std::string filename, int carCount, bool uniformProfit);
 
 private:
 	int walkingDistance;

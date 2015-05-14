@@ -9,8 +9,9 @@
 namespace e4share
 {
 
-Trip::Trip(StreetNetwork& network_, StreetNetwork::Vertex origin_, StreetNetwork::Vertex destination_, int beginTime_, int endTime_,
+Trip::Trip(int index_, StreetNetwork& network_, StreetNetwork::Vertex origin_, StreetNetwork::Vertex destination_, int beginTime_, int endTime_,
 		int batteryConsumption_, int profit_) :
+				index(index_),
 				network(network_),
 				origin(origin_),
 				destination(destination_),

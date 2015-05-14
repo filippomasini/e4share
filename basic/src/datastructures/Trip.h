@@ -16,7 +16,7 @@ class Trip
 {
 
 public:
-	Trip(StreetNetwork& network_, StreetNetwork::Vertex origin_, StreetNetwork::Vertex destination_, int beginTime_, int endTime_,
+	Trip(int index_, StreetNetwork& network_, StreetNetwork::Vertex origin_, StreetNetwork::Vertex destination_, int beginTime_, int endTime_,
 			int batteryConsumption_, int profit_);
 
 	int getBatteryConsumption() const
@@ -49,7 +49,18 @@ public:
 		return destination;
 	}
 
+	bool operator < (const Trip& that) const
+	{
+		return index < that.index;
+	}
+
+	bool operator == (const Trip& that) const
+	{
+		return index == that.index;
+	}
+
 private:
+	int index;
 	StreetNetwork& network;
 	StreetNetwork::Vertex origin;
 	StreetNetwork::Vertex destination;

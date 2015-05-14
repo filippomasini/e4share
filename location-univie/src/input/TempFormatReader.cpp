@@ -87,7 +87,7 @@ CSLocationInstance TempFormatReader::readInstance(std::string filename)
 		instancefile >> endTime;
 		instancefile >> batteryConsumption;
 		instancefile >> profit;
-		Trip trip(network, origin, destination, beginTime, endTime, batteryConsumption, profit);
+		Trip trip(i, network, origin, destination, beginTime, endTime, batteryConsumption, profit);
 		trips.push_back(trip);
 	}
 

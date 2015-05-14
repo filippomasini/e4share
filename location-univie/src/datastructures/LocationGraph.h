@@ -9,6 +9,10 @@
 
 #include "CSLocationInstance.h"
 
+#include <vector>
+#include <map>
+#include <unordered_map>
+
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/optional.hpp>
 
@@ -115,6 +119,11 @@ public:
 		return arcs;
 	}
 
+	std::vector<Edge> tripArcsOf(Trip trip)
+	{
+		return tripArcs[trip];
+	}
+
 private:
 
 
@@ -122,6 +131,7 @@ private:
 	CSLocationInstance& instance;
 	int stationCount;
 	Graph graph;
+	std::map<Trip, std::vector<Edge>> tripArcs;
 
 	Vertex getVertex(unsigned long station, int time)
 	{

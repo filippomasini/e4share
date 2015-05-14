@@ -11,6 +11,7 @@ namespace po = boost::program_options;
 #include "datastructures/LocationGraph.h"
 #include "datastructures/BatteryGraph.h"
 #include "ilp/TwoLayeredGraphsILP.h"
+#include "ilp/SimpleTwoLayeredGraphsILP.h"
 #include "input/TempFormatReader.h"
 #include "input/DummyFormatReader.h"
 #include "stacktrace.h"
@@ -24,6 +25,10 @@ int main(int argc, const char* argv[])
 	int budget;
 	bool useBatteryGraph = true;
 	int walkingDistance = 10;
+	bool simpleModel = true;
+	bool benders = false;
+	int carCount = 1;
+	bool uniformProfit = true;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
@@ -32,6 +37,10 @@ int main(int argc, const char* argv[])
 		("budget,b", po::value<int>(&budget)->required(), "budget available")
 		("batterygraph", po::value<bool>(&useBatteryGraph), "whether to use a time-expanded battery graph or not")
 		("walk,w", po::value<int>(&walkingDistance), "maximum distance a customer will walk")
+		("simple,s", po::value<bool>(&simpleModel), "whether to use the simple model or not")
+		("benders", po::value<bool>(&benders), "whether to use Benders decomposition or not")
+		("carcount,c", po::value<int>(&carCount), "maximum number of cars used in our models")
+		("uniform,u", po::value<bool>(&uniformProfit), "whether trips have uniform profit of 1 or the value from the instance file")
 	;
 
 	po::variables_map vm;
@@ -48,7 +57,7 @@ int main(int argc, const char* argv[])
 
 	//TempFormatReader reader;
 	DummyFormatReader reader(walkingDistance);
-	auto instance = reader.readInstance(filename);
+	auto instance = reader.readInstance(filename, carCount, uniformProfit);
 
 	// check
 
@@ -69,11 +78,20 @@ int main(int argc, const char* argv[])
 
 	std::cout << "maxTime: " << instance.getMaxTime() << std::endl;
 
-	TwoLayeredGraphsILP ilp(instance, budget, useBatteryGraph);
-	ilp.solve();
+	if(simpleModel)
+	{
+		SimpleTwoLayeredGraphsILP ilp(instance, budget, useBatteryGraph, benders);
+		ilp.solve();
+	}
+	else
+	{
+		TwoLayeredGraphsILP ilp(instance, budget, useBatteryGraph);
+		ilp.solve();
+	}
 
 	//LocationGraph locationGraph(instance);
 	//BatteryGraph batteryGraph(instance);
 
 	return 0;
 }
+
