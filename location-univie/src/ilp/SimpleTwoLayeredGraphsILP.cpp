@@ -13,6 +13,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "BendersCallback.h"
 
@@ -39,10 +40,12 @@ SimpleTwoLayeredGraphsILP::SimpleTwoLayeredGraphsILP(CSLocationInstance instance
 	s = IloNumVarArray(env, stationCount);
 	for(int i = 0; i < stationCount; i++)
 	{
-		std::string yname = "y" + i;
-		std::string sname = "s" + i;
-		y[i] = IloBoolVar(env);
-		s[i] = IloIntVar(env, sname.c_str());
+		std::stringstream yname;
+		yname << "y" << i;
+		std::stringstream sname;
+		sname << "s" << i;
+		y[i] = IloBoolVar(env, yname.str().c_str());
+		s[i] = IloIntVar(env, sname.str().c_str());
 		s[i].setBounds(0, instance.getNetwork().getCandidateStations()[i].getCapacity());
 	}
 
@@ -51,12 +54,16 @@ SimpleTwoLayeredGraphsILP::SimpleTwoLayeredGraphsILP(CSLocationInstance instance
 
 	for(int k = 0; k < tripCount; k++)
 	{
-		lambda[k] = IloBoolVar(env, "lambda" + k);
+		std::stringstream lname;
+		lname << "lambda" << k;
+		lambda[k] = IloBoolVar(env, lname.str().c_str());
 
 		for(int c = 0; c < carCount; c++)
 		{
 			int index = k * carCount + c;
-			a[index] = IloBoolVar(env);
+			std::stringstream aname;
+			aname << "a" << c << "," << k;
+			a[index] = IloBoolVar(env, aname.str().c_str());
 		}
 	}
 
@@ -99,6 +106,7 @@ SimpleTwoLayeredGraphsILP::SimpleTwoLayeredGraphsILP(CSLocationInstance instance
 		{
 			f[c * locationEdgeCount + e] = IloNumVar(env);
 			f[c * locationEdgeCount + e].setBounds(0, 1);
+			//f[c * locationEdgeCount + e] = IloBoolVar(env);
 		}
 
 		if(useBatteryGraph)
@@ -397,6 +405,7 @@ void SimpleTwoLayeredGraphsILP::solve()
 	if(benders)
 	{
 		cplex.use((LazyConsI*) &callback);
+		cplex.setParam(IloCplex::Threads, 1);
 	}
 	cplex.solve();
 	std::cout << "obj: " << cplex.getObjValue() << std::endl;
