@@ -15,7 +15,7 @@
 namespace e4share
 {
 
-BendersCallback::BendersCallback(IloEnv& env_, CSLocationInstance instance_, LocationGraph locationGraph_, BatteryGraph batteryGraph_,
+BendersCallback::BendersCallback(IloEnv& env_, CSLocationInstance& instance_, LocationGraph& locationGraph_, BatteryGraph& batteryGraph_,
 		IloNumVarArray& lambda_, IloNumVarArray& y_, IloNumVarArray& s_, IloNumVarArray& a_) :
 		LazyConsI(env_),
 		env(env_),
@@ -156,7 +156,9 @@ void BendersCallback::mainLazy()
 				waitingCars += f[c * locationEdgeCount + waitingEdgeIndex];
 			}
 			IloRange capacityConstraint(waitingCars <= svals[i]);
-			capacityConstraint.setName("foobar");
+			std::stringstream name;
+			name << "capacity " << i << "," << t;
+			capacityConstraint.setName(name.str().c_str());
 			capacityConstraints.push_back(capacityConstraint);
 			constraintMap[capacityConstraint.getId()] = s[i];
 			model.add(capacityConstraint);
@@ -176,6 +178,9 @@ void BendersCallback::mainLazy()
 				for(int c = 0; c < carCount; c++)
 				{
 					IloRange openedStationConstraint(f[c * locationEdgeCount + locEdgeIndex[edge]] <= yvals[i]);
+					std::stringstream name;
+					name << "openedStation " << i << "," << t << "," << c;
+					openedStationConstraint.setName(name.str().c_str());
 					openedStationConstraints.push_back(openedStationConstraint);
 					constraintMap[openedStationConstraint.getId()] = y[i];
 					model.add(openedStationConstraint);
@@ -206,10 +211,16 @@ void BendersCallback::mainLazy()
 		temp += rootFlow;
 		temp -= carTrips;
 		IloRange selectedCarConstraint1(temp <= 0);
+		std::stringstream name1;
+		name1 << "selectedCar " << c;
+		selectedCarConstraint1.setName(name1.str().c_str());
 		//temp.end();
 		selectedCarConstraints1.push_back(selectedCarConstraint1);
 		constraintMap[selectedCarConstraint1.getId()] = carTrips2;
 		IloRange selectedCarConstraint2(rootFlow <= 1);
+		std::stringstream name2;
+		name2 << "selectedCar2 " << c;
+		selectedCarConstraint2.setName(name2.str().c_str());
 		selectedCarConstraints2.push_back(selectedCarConstraint2);
 		IloExpr temp2(env);
 		temp2 += 1;
@@ -235,20 +246,26 @@ void BendersCallback::mainLazy()
 				auto outEdges = locationGraph.outgoingEdges(i, t);
 				IloExpr inFlow(subEnv);
 				IloExpr outFlow(subEnv);
+				IloExpr temp(subEnv);
 				for(auto edge : inEdges)
 				{
-					inFlow += f[c * locationEdgeCount + locEdgeIndex[edge]];
+					//inFlow += f[c * locationEdgeCount + locEdgeIndex[edge]];
+					temp += f[c * locationEdgeCount + locEdgeIndex[edge]];
 				}
 				for(auto edge : outEdges)
 				{
-					outFlow += f[c * locationEdgeCount + locEdgeIndex[edge]];
+					//outFlow += f[c * locationEdgeCount + locEdgeIndex[edge]];
+					temp -= f[c * locationEdgeCount + locEdgeIndex[edge]];
 				}
-				IloExpr temp(subEnv);
-				temp += inFlow;
-				temp -= outFlow;
+
+				//temp += inFlow;
+				//temp -= outFlow;
 				IloRange flowConservationConstraint(temp == 0);
+				std::stringstream name;
+				name << "flowConservation " << c << "," << i << "," << t;
+				flowConservationConstraint.setName(name.str().c_str());
 				flowConservationConstraints.push_back(flowConservationConstraint);
-				//model.add(flowConservationConstraint);
+				model.add(flowConservationConstraint);
 				inFlow.end();
 				outFlow.end();
 				temp.end();
@@ -271,6 +288,9 @@ void BendersCallback::mainLazy()
 			}
 			//std::cout << "foo: " << selectedTripFlow << std::endl;
 			IloRange selectedTripFlowConstraint(selectedTripFlow == avals[k * instance.getCarCount() + c]);
+			std::stringstream name;
+			name << "tripSelection " << k << "," << c;
+			selectedTripFlowConstraint.setName(name.str().c_str());
 			selectedTripFlowConstraints.push_back(selectedTripFlowConstraint);
 			constraintMap[selectedTripFlowConstraint.getId()] = a[k * instance.getCarCount() + c];
 			model.add(selectedTripFlowConstraint);
@@ -331,7 +351,7 @@ void BendersCallback::mainLazy()
 	cplex.solve();
 	auto status = cplex.getStatus();
 	std::cout << status << std::endl;
-	exit(-1);
+	//exit(-1);
 
 	if(status == IloAlgorithm::Infeasible)
 	{

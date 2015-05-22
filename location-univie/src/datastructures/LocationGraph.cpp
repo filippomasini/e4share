@@ -47,6 +47,7 @@ LocationGraph::LocationGraph(CSLocationInstance& instance_) :
 	// trip arcs
 	auto trips = instance.getTrips();
 	auto allStations = instance.getNetwork().getCandidateStations();
+	int i = 0;
 	for(Trip trip : trips)
 	{
 		std::vector<Edge> assocEdges;
@@ -72,6 +73,20 @@ LocationGraph::LocationGraph(CSLocationInstance& instance_) :
 			}
 		}
 		tripArcs[trip] = assocEdges;
+		std::cout << "trip " << i << ": " << assocEdges.size() << " trip arcs" << std::endl;
+		std::cout << originStations.size() << " origins (";
+		for(auto os : originStations)
+		{
+			std::cout << os << ", ";
+		}
+		std::cout << ")" << std::endl;
+		std::cout << destinationStations.size() << " destinations (";
+		for(auto os : destinationStations)
+		{
+			std::cout << os << ", ";
+		}
+		std::cout << ")" << std::endl;
+		i++;
 	}
 
 	//std::cout << boost::num_vertices(graph) << ", " << boost::num_edges(graph) << std::endl;

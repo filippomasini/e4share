@@ -48,7 +48,7 @@ public:
 class BendersCallback : LazyConsI
 {
 public:
-	BendersCallback(IloEnv& env_, CSLocationInstance instance_, LocationGraph locationGraph_, BatteryGraph batteryGraph_,
+	BendersCallback(IloEnv& env_, CSLocationInstance& instance_, LocationGraph& locationGraph_, BatteryGraph& batteryGraph_,
 			IloNumVarArray& lambda_, IloNumVarArray& y_, IloNumVarArray& s_, IloNumVarArray& a_);
 
 	// entry for lazy constraint callback (called for integer solutions)
@@ -61,9 +61,9 @@ public:
 
 private:
 	IloEnv& env;
-	CSLocationInstance instance;
-	LocationGraph locationGraph;
-	BatteryGraph batteryGraph;
+	CSLocationInstance& instance;
+	LocationGraph& locationGraph;
+	BatteryGraph& batteryGraph;
 
 	IloNumVarArray& lambda;
 	IloNumVarArray& y;

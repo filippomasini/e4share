@@ -104,7 +104,10 @@ SimpleTwoLayeredGraphsILP::SimpleTwoLayeredGraphsILP(CSLocationInstance instance
 	{
 		for(int e = 0; e < locationEdgeCount; e++)
 		{
+			std::stringstream name;
+			name << "f" << c << "," << e;
 			f[c * locationEdgeCount + e] = IloNumVar(env);
+			f[c * locationEdgeCount + e].setName(name.str().c_str());
 			f[c * locationEdgeCount + e].setBounds(0, 1);
 			//f[c * locationEdgeCount + e] = IloBoolVar(env);
 		}
@@ -113,7 +116,10 @@ SimpleTwoLayeredGraphsILP::SimpleTwoLayeredGraphsILP(CSLocationInstance instance
 		{
 			for(int e = 0; e < batteryEdgeCount; e++)
 			{
+				std::stringstream name;
+				name << "g" << c << "," << e;
 				g[c * batteryEdgeCount + e] = IloNumVar(env);
+				g[c * batteryEdgeCount + e].setName(name.str().c_str());
 				g[c * batteryEdgeCount + e].setBounds(0, 1);
 			}
 		}
@@ -121,7 +127,10 @@ SimpleTwoLayeredGraphsILP::SimpleTwoLayeredGraphsILP(CSLocationInstance instance
 		{
 			for(int e = 0; e < timeslots; e++)
 			{
+				std::stringstream name;
+				name << "g1" << c << "," << e;
 				g1[c * timeslots + e] = IloNumVar(env);
+				g1[c * timeslots + e].setName(name.str().c_str());
 				g1[c * timeslots + e].setBounds(0, 100);
 			}
 		}
@@ -264,7 +273,11 @@ SimpleTwoLayeredGraphsILP::SimpleTwoLayeredGraphsILP(CSLocationInstance instance
 				{
 					selectedTripFlow += f[c * locationEdgeCount + locEdgeIndex[arc]];
 				}
-				model.add(selectedTripFlow == a[k * instance.getCarCount() + c]);
+				selectedTripFlow -= a[k * instance.getCarCount() + c];
+				IloRange temp(selectedTripFlow == 0);
+				temp.setName("selectedTrip");
+				//model.add(selectedTripFlow == a[k * instance.getCarCount() + c]);
+				model.add(temp);
 				selectedTripFlow.end();
 			}
 		}
@@ -399,6 +412,7 @@ void SimpleTwoLayeredGraphsILP::solve()
 	int carCount = instance.getCarCount();
 
 	cplex = IloCplex(model);
+	cplex.exportModel("nobenders.lp");
 
 	BendersCallback callback(env, instance, locationGraph, batteryGraph, lambda, y, s, a);
 
