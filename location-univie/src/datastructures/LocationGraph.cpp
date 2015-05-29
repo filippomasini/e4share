@@ -6,6 +6,10 @@
 
 #include "datastructures/LocationGraph.h"
 
+#include <fstream>
+#include <iostream>
+#include <sstream>
+
 namespace e4share
 {
 
@@ -90,6 +94,114 @@ LocationGraph::LocationGraph(CSLocationInstance& instance_) :
 	}
 
 	//std::cout << boost::num_vertices(graph) << ", " << boost::num_edges(graph) << std::endl;
+
+
+	// draw location graph
+	int stationCount = instance.getNetwork().getCandidateStations().size();
+	int tripCount = instance.getTrips().size();
+	int carCount = instance.getCarCount();
+	int locationEdgeCount = edgeCount();
+	std::map<LocationGraph::Edge, int> locEdgeIndex;
+	int edgeIndex = 0;
+	for(LocationGraph::Edge e : allEdges())
+	{
+		locEdgeIndex[e] = edgeIndex;
+		edgeIndex++;
+	}
+
+	std::ofstream tikzfile;
+	tikzfile.open("layeredGraph.tex");
+	tikzfile << "\\documentclass{article}" << std::endl;
+	tikzfile << "\\usepackage[landscape]{geometry}" << std::endl;
+	tikzfile << "\\usepackage{tikz}" << std::endl;
+	tikzfile << "\\begin{document}" << std::endl;
+	tikzfile << "\\pagenumbering{gobble}" << std::endl << std::endl;
+
+	for(int c = 0; c < 1; c++)
+	{
+		// check which stations are visited by car c
+		int stationsVisited = 0;
+		std::vector<bool> stationUsed(stationCount);
+		for(int i = 0; i < stationCount; i++)
+		{
+			stationUsed[i] = false;
+			for(int t = 0; t <= instance.getMaxTime(); t++)
+			{
+				auto inEdges = incomingEdges(i, t);
+				for(auto edge : inEdges)
+				{
+					stationUsed[i] = true;
+				}
+			}
+		}
+
+		for(int i = 0; i < stationCount; i++)
+		{
+			if(stationUsed[i])
+			{
+				stationsVisited++;
+			}
+		}
+
+//		auto target = edge.m_target;
+//						int station = (target - 1) % stationCount;
+//						int time = (target - 1) / stationCount;
+
+		tikzfile << "\\begin{figure}" << std::endl;
+		tikzfile << "\\centering" << std::endl;
+		tikzfile << "\\begin{tikzpicture}" << std::endl;
+
+		//tikzfile << (stationsVisited - 1) / 2 << std::endl;
+		//tikzfile << ((stationsVisited - 1) / 2) << std::endl;
+		tikzfile << "\\node (r) at (" << (stationsVisited - 1) / 2.0 << ", 1) {$r$};" << std::endl;
+
+		// draw vertices
+		int xcounter = 0;
+		for(int i = 0; i < stationCount; i++)
+		{
+			if(stationUsed[i])
+			{
+				for(int t = 0; t <= instance.getMaxTime(); t++)
+				{
+					tikzfile << "\\node (" << i << "-" << t << ") at (" << xcounter << ", -" << t << ") {" << i << "};" << std::endl;
+				}
+				xcounter++;
+			}
+		}
+
+		// draw arcs
+		tikzfile << "\\draw" << std::endl;
+		for(int i = 0; i < stationCount; i++)
+		{
+			if(stationUsed[i])
+			{
+				for(int t = 0; t <= instance.getMaxTime(); t++)
+				{
+					auto inEdges = incomingEdges(i, t);
+					for(auto edge : inEdges)
+					{
+						std::string source = "r";
+						if(edge.m_source > 0)
+						{
+							int stat = (edge.m_source - 1) % stationCount;
+							int time = (edge.m_source - 1) / stationCount;
+							std::stringstream temp;
+							temp << stat << "-" << time;
+							source = temp.str();
+						}
+						tikzfile << "(" << source << ") -- (" << i << "-" << t << ") node [midway, above, font = \\tiny] {}" << std::endl;
+					}
+				}
+			}
+		}
+		tikzfile << ";" << std::endl;
+
+		tikzfile << "\\end{tikzpicture}" << std::endl;
+		tikzfile << "\\end{figure}" << std::endl;
+		tikzfile << "\\clearpage" << std::endl << std::endl;
+	}
+	tikzfile << "\\end{document}" << std::endl;
+	tikzfile.close();
 
 }
 

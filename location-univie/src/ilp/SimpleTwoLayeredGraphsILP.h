@@ -45,6 +45,8 @@ private:
 	IloNumVarArray g;
 	IloNumVarArray g1;
 
+	IloNumArray bendersFvals;
+
 	void addModel();
 	void drawSolutionTikz(std::string filename, IloNumArray fvals);
 };

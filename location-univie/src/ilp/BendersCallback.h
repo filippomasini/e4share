@@ -49,7 +49,7 @@ class BendersCallback : LazyConsI
 {
 public:
 	BendersCallback(IloEnv& env_, CSLocationInstance& instance_, LocationGraph& locationGraph_, BatteryGraph& batteryGraph_,
-			IloNumVarArray& lambda_, IloNumVarArray& y_, IloNumVarArray& s_, IloNumVarArray& a_);
+			IloNumVarArray& lambda_, IloNumVarArray& y_, IloNumVarArray& s_, IloNumVarArray& a_, IloNumArray& fvals_, IloCplex& master);
 
 	// entry for lazy constraint callback (called for integer solutions)
 	virtual void mainLazy();
@@ -69,6 +69,11 @@ private:
 	IloNumVarArray& y;
 	IloNumVarArray& s;
 	IloNumVarArray& a;
+
+	IloNumArray& fvals;
+
+	IloCplex& master;
+	int counter = 0;
 };
 
 } /* namespace e4share */

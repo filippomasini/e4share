@@ -16,7 +16,7 @@ namespace e4share
 {
 
 BendersCallback::BendersCallback(IloEnv& env_, CSLocationInstance& instance_, LocationGraph& locationGraph_, BatteryGraph& batteryGraph_,
-		IloNumVarArray& lambda_, IloNumVarArray& y_, IloNumVarArray& s_, IloNumVarArray& a_) :
+		IloNumVarArray& lambda_, IloNumVarArray& y_, IloNumVarArray& s_, IloNumVarArray& a_, IloNumArray& fvals_, IloCplex& master_) :
 		LazyConsI(env_),
 		env(env_),
 		instance(instance_),
@@ -25,7 +25,9 @@ BendersCallback::BendersCallback(IloEnv& env_, CSLocationInstance& instance_, Lo
 		lambda(lambda_),
 		y(y_),
 		s(s_),
-		a(a_)
+		a(a_),
+		fvals(fvals_),
+		master(master_)
 {
 	// TODO Auto-generated constructor stub
 
@@ -41,9 +43,53 @@ void BendersCallback::mainLazy()
 	IloNumArray svals(env);
 	IloNumArray avals(env);
 	LazyConsI::getValues(lambdavals, lambda);
+	for(int i = 0; i < lambdavals.getSize(); i++)
+	{
+		if(abs(lambdavals[i]) < 0.5)
+		{
+			lambdavals[i] = 0;
+		}
+		else
+		{
+			lambdavals[i] = 1;
+		}
+	}
 	LazyConsI::getValues(yvals, y);
+	for(int i = 0; i < yvals.getSize(); i++)
+	{
+		if(abs(yvals[i]) < 0.5)
+		{
+			yvals[i] = 0;
+		}
+		else
+		{
+			yvals[i] = 1;
+		}
+	}
 	LazyConsI::getValues(svals, s);
+//	for(int i = 0; i < svals.getSize(); i++)
+//	{
+//		if(abs(svals[i]) < 0.5)
+//		{
+//			svals[i] = 0;
+//		}
+//		else
+//		{
+//			svals[i] = 1;
+//		}
+//	}
 	LazyConsI::getValues(avals, a);
+	for(int i = 0; i < avals.getSize(); i++)
+	{
+		if(abs(avals[i]) < 0.5)
+		{
+			avals[i] = 0;
+		}
+		else
+		{
+			avals[i] = 1;
+		}
+	}
 
 
 
@@ -74,6 +120,14 @@ void BendersCallback::mainLazy()
 					std::cout << " car " << c << std::endl;
 				}
 			}
+		}
+	}
+
+	for(int k = 0; k < tripCount; k++)
+	{
+		for(int c = 0; c < carCount; c++)
+		{
+			std::cout << "a" << c << "," << k << ": " << avals[k * carCount + c] << std::endl;
 		}
 	}
 
@@ -143,7 +197,7 @@ void BendersCallback::mainLazy()
 	// capacity constraint on flow
 
 	std::map<IloInt, IloExpr> constraintMap;
-	std::vector<IloRange> capacityConstraints;
+	//std::vector<IloRange> capacityConstraints;
 	for(int i = 0; i < stationCount; i++)
 	{
 		for(int t = 0; t < instance.getMaxTime(); t++)
@@ -159,7 +213,7 @@ void BendersCallback::mainLazy()
 			std::stringstream name;
 			name << "capacity " << i << "," << t;
 			capacityConstraint.setName(name.str().c_str());
-			capacityConstraints.push_back(capacityConstraint);
+			//capacityConstraints.push_back(capacityConstraint);
 			constraintMap[capacityConstraint.getId()] = s[i];
 			model.add(capacityConstraint);
 			waitingCars.end();
@@ -167,31 +221,34 @@ void BendersCallback::mainLazy()
 	}
 
 	// only use opened stations
-	std::vector<IloRange> openedStationConstraints;
+	//std::vector<IloRange> openedStationConstraints;
 	for(int i = 0; i < stationCount; i++)
 	{
 		for(int t = 0; t <= instance.getMaxTime(); t++)
 		{
 			auto inEdges = locationGraph.incomingEdges(i, t);
-			for(auto edge : inEdges)
+			for(int c = 0; c < carCount; c++)
 			{
-				for(int c = 0; c < carCount; c++)
+				IloExpr incomingArcs(subEnv);
+				for(auto edge : inEdges)
 				{
-					IloRange openedStationConstraint(f[c * locationEdgeCount + locEdgeIndex[edge]] <= yvals[i]);
-					std::stringstream name;
-					name << "openedStation " << i << "," << t << "," << c;
-					openedStationConstraint.setName(name.str().c_str());
-					openedStationConstraints.push_back(openedStationConstraint);
-					constraintMap[openedStationConstraint.getId()] = y[i];
-					model.add(openedStationConstraint);
+					incomingArcs += f[c * locationEdgeCount + locEdgeIndex[edge]];
 				}
+
+				IloRange openedStationConstraint(incomingArcs <= yvals[i]);
+				std::stringstream name;
+				name << "openedStation " << i << "," << t << "," << c;
+				openedStationConstraint.setName(name.str().c_str());
+				//openedStationConstraints.push_back(openedStationConstraint);
+				constraintMap[openedStationConstraint.getId()] = y[i];
+				model.add(openedStationConstraint);
 			}
 		}
 	}
 
 	// only use selected cars
-	std::vector<IloRange> selectedCarConstraints1;
-	std::vector<IloRange> selectedCarConstraints2;
+	//std::vector<IloRange> selectedCarConstraints1;
+	//std::vector<IloRange> selectedCarConstraints2;
 	for(int c = 0; c < carCount; c++)
 	{
 		IloExpr carTrips(subEnv);
@@ -215,13 +272,13 @@ void BendersCallback::mainLazy()
 		name1 << "selectedCar " << c;
 		selectedCarConstraint1.setName(name1.str().c_str());
 		//temp.end();
-		selectedCarConstraints1.push_back(selectedCarConstraint1);
+		//selectedCarConstraints1.push_back(selectedCarConstraint1);
 		constraintMap[selectedCarConstraint1.getId()] = carTrips2;
 		IloRange selectedCarConstraint2(rootFlow <= 1);
 		std::stringstream name2;
 		name2 << "selectedCar2 " << c;
 		selectedCarConstraint2.setName(name2.str().c_str());
-		selectedCarConstraints2.push_back(selectedCarConstraint2);
+		//selectedCarConstraints2.push_back(selectedCarConstraint2);
 		IloExpr temp2(env);
 		temp2 += 1;
 		constraintMap[selectedCarConstraint2.getId()] = temp2;
@@ -235,7 +292,7 @@ void BendersCallback::mainLazy()
 	}
 
 	// flow conservation
-	std::vector<IloRange> flowConservationConstraints;
+	//std::vector<IloRange> flowConservationConstraints;
 	for(int c = 0; c < carCount; c++)
 	{
 		for(int i = 0; i < stationCount; i++)
@@ -264,7 +321,7 @@ void BendersCallback::mainLazy()
 				std::stringstream name;
 				name << "flowConservation " << c << "," << i << "," << t;
 				flowConservationConstraint.setName(name.str().c_str());
-				flowConservationConstraints.push_back(flowConservationConstraint);
+				//flowConservationConstraints.push_back(flowConservationConstraint);
 				model.add(flowConservationConstraint);
 				inFlow.end();
 				outFlow.end();
@@ -275,7 +332,7 @@ void BendersCallback::mainLazy()
 	}
 
 	// flow for covered trips
-	std::vector<IloRange> selectedTripFlowConstraints;
+	//std::vector<IloRange> selectedTripFlowConstraints;
 	for(int k = 0; k < tripCount; k++)
 	{
 		auto tripArcs = locationGraph.tripArcsOf(instance.getTrips()[k]);
@@ -291,7 +348,7 @@ void BendersCallback::mainLazy()
 			std::stringstream name;
 			name << "tripSelection " << k << "," << c;
 			selectedTripFlowConstraint.setName(name.str().c_str());
-			selectedTripFlowConstraints.push_back(selectedTripFlowConstraint);
+			//selectedTripFlowConstraints.push_back(selectedTripFlowConstraint);
 			constraintMap[selectedTripFlowConstraint.getId()] = a[k * instance.getCarCount() + c];
 			model.add(selectedTripFlowConstraint);
 			selectedTripFlow.end();
@@ -300,58 +357,21 @@ void BendersCallback::mainLazy()
 	}
 
 
-	// count constraints
-	int constraintCount = capacityConstraints.size() + openedStationConstraints.size() + selectedCarConstraints1.size() +
-			selectedCarConstraints2.size() + flowConservationConstraints.size() + selectedTripFlowConstraints.size();
-	IloConstraintArray allConstraints(subEnv, constraintCount);
-	//IloConstraintArray allConstraints2(subEnv, constraintCount);
-	IloNumArray dualVars(subEnv, constraintCount);
+	// arrays for dual variables
+	IloConstraintArray allConstraints(subEnv);
+	IloNumArray dualVars(subEnv);
 
-	// insert constraints into array
-	int cc = 0;
-//	for(auto constraint : capacityConstraints)
-//	{
-//		allConstraints[cc] = constraint;
-//		cc++;
-//	}
-//	for(auto constraint : openedStationConstraints)
-//	{
-//		allConstraints[cc] = constraint;
-//		cc++;
-//	}
-//	for(auto constraint : selectedCarConstraints1)
-//	{
-//		allConstraints[cc] = constraint;
-//		cc++;
-//	}
-//	for(auto constraint : selectedCarConstraints2)
-//	{
-//		allConstraints[cc] = constraint;
-//		cc++;
-//	}
-//	for(auto constraint : flowConservationConstraints)
-//	{
-//		allConstraints[cc] = constraint;
-//		cc++;
-//	}
-//	for(auto constraint : selectedTripFlowConstraints)
-//	{
-//		allConstraints[cc] = constraint;
-//		cc++;
-//	}
 
-	for(auto constraint : constraintMap)
-	{
-		constraint.second.setName("foo");
-	}
 	IloCplex cplex(model);
-	cplex.exportModel("foo.lp");
+	cplex.extract(model);
+	cplex.exportModel("lastBenders.lp");
 	cplex.setParam(IloCplex::RootAlg, IloCplex::Dual);
 	cplex.setParam(IloCplex::PreInd, false);
+	cplex.setParam(IloCplex::Reduce, false);
 	cplex.solve();
+	cplex.writeSolution("foo.sol");
 	auto status = cplex.getStatus();
 	std::cout << status << std::endl;
-	//exit(-1);
 
 	if(status == IloAlgorithm::Infeasible)
 	{
@@ -363,7 +383,7 @@ void BendersCallback::mainLazy()
 			//std::cout << constraintCount << ", " << allConstraints.getSize() << std::endl;
 			for(int cs = 0; cs < allConstraints.getSize(); cs++)
 			{
-				if(dualVars[cs] != 0)
+				if(dualVars[cs] != 0  &&  constraintMap.count(allConstraints[cs].getId()) > 0)
 				{
 					//std::cout << std::string(allConstraints[cs].getName());
 					std::cout << allConstraints[cs] << ", " << dualVars[cs];
@@ -378,37 +398,25 @@ void BendersCallback::mainLazy()
 			}
 			//exit(-1);
 			std::cout << feasibilityCut << std::endl;
-			LazyConsI::add(feasibilityCut >= 0);
+			LazyConsI::add(feasibilityCut <= 0);
+
+			//master model
+//			std::stringstream filename;
+//			filename << "master" << counter << ".lp";
+//			master.exportModel(filename.str().c_str());
+//			counter++;
+
+			//std::cout << foo << std::endl;
 			//std::cout << feasibilityCut << std::endl;
-			feasibilityCut.end();
+			//feasibilityCut.end();
 			allConstraints.end();
 			dualVars.end();
 			//std::cout << "cut added" << std::endl;
 			//model.end();
 			cplex.end();
 			model.end();
+			subEnv.end();
 
-			for(int cs = 0; cs < constraintCount; cs++)
-			{
-//				if(capacityConstraints.count(allConstraints[cs].getId()) > 0)
-//				{
-//					//std::cout << allConstraints[cs] << ", " << dualVars[cs] << std::endl;
-//					std::cout << capacityConstraints[allConstraints[cs].getId()].getName() << std::endl;
-//				}
-				//std::cout << allConstraints[cs].getId() << std::endl;
-//				if(allConstraints[cs].getId() == "foobar")
-//				{
-//
-//				}
-
-			}
-//			for(int i = 0; i < stationCount; i++)
-//			{
-//				for(int t = 0; t <= instance.getMaxTime(); t++)
-//				{
-//
-//				}
-//			}
 		}
 		catch (IloException& e)
 		{

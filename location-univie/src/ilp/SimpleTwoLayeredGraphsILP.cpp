@@ -137,6 +137,8 @@ SimpleTwoLayeredGraphsILP::SimpleTwoLayeredGraphsILP(CSLocationInstance instance
 
 	}
 
+	bendersFvals = IloNumArray(env, carCount * locationEdgeCount);
+
 
 	// objective function
 	IloExpr obj(env);
@@ -412,9 +414,12 @@ void SimpleTwoLayeredGraphsILP::solve()
 	int carCount = instance.getCarCount();
 
 	cplex = IloCplex(model);
-	cplex.exportModel("nobenders.lp");
+	if(!benders)
+	{
+		cplex.exportModel("nobenders.lp");
+	}
 
-	BendersCallback callback(env, instance, locationGraph, batteryGraph, lambda, y, s, a);
+	BendersCallback callback(env, instance, locationGraph, batteryGraph, lambda, y, s, a, bendersFvals, cplex);
 
 	if(benders)
 	{
@@ -639,6 +644,181 @@ void SimpleTwoLayeredGraphsILP::solve()
 	if(!benders)
 	{
 		drawSolutionTikz("solution.tex", fvals);
+	}
+	else
+	{
+		IloEnv env2;
+		IloModel model2(env2);
+		int locationEdgeCount = locationGraph.edgeCount();
+		f = IloNumVarArray(env2, carCount * locationEdgeCount);
+		for(int c = 0; c < carCount; c++)
+		{
+			for(int e = 0; e < locationEdgeCount; e++)
+			{
+				std::stringstream name;
+				name << "f" << c << "," << e;
+				f[c * locationEdgeCount + e] = IloNumVar(env2);
+				f[c * locationEdgeCount + e].setName(name.str().c_str());
+				f[c * locationEdgeCount + e].setBounds(0, 1);
+				//f[c * locationEdgeCount + e] = IloBoolVar(env);
+			}
+		}
+
+		std::map<LocationGraph::Edge, int> locEdgeIndex;
+		int edgeIndex = 0;
+		for(LocationGraph::Edge e : locationGraph.allEdges())
+		{
+			locEdgeIndex[e] = edgeIndex;
+			edgeIndex++;
+		}
+
+		// LOCATION GRAPH FLOW
+		// capacity constraint on flow
+		for(int i = 0; i < stationCount; i++)
+		{
+			for(int t = 0; t < instance.getMaxTime(); t++)
+			{
+				LocationGraph::Edge waitingEdge = locationGraph.getWaitingArc(i, t);
+				int waitingEdgeIndex = locEdgeIndex[waitingEdge];
+				IloExpr waitingCars(env2);
+				for(int c = 0; c < carCount; c++)
+				{
+					waitingCars += f[c * locationEdgeCount + waitingEdgeIndex];
+				}
+				IloRange capacityConstraint(waitingCars <= svals[i]);
+				std::stringstream name;
+				name << "capacity " << i << "," << t;
+				capacityConstraint.setName(name.str().c_str());
+				model2.add(capacityConstraint);
+				waitingCars.end();
+			}
+		}
+
+		// only use opened stations
+		for(int i = 0; i < stationCount; i++)
+		{
+			for(int t = 0; t <= instance.getMaxTime(); t++)
+			{
+				auto inEdges = locationGraph.incomingEdges(i, t);
+				for(int c = 0; c < carCount; c++)
+				{
+					IloExpr incomingArcs(env2);
+					for(auto edge : inEdges)
+					{
+						incomingArcs += f[c * locationEdgeCount + locEdgeIndex[edge]];
+					}
+
+					IloRange openedStationConstraint(incomingArcs <= yvals[i]);
+					std::stringstream name;
+					name << "openedStation " << i << "," << t << "," << c;
+					openedStationConstraint.setName(name.str().c_str());
+					model2.add(openedStationConstraint);
+				}
+			}
+		}
+
+		// only use selected cars
+		for(int c = 0; c < carCount; c++)
+		{
+			IloExpr carTrips(env2);
+			IloExpr rootFlow(env2);
+			for(int k = 0; k < tripCount; k++)
+			{
+				carTrips += avals[k * carCount + c];
+			}
+			auto rootEdges = locationGraph.outgoingEdges();
+			for(auto edge: rootEdges)
+			{
+				rootFlow += f[c * locationEdgeCount + locEdgeIndex[edge]];
+			}
+			IloExpr temp(env2);
+			temp += rootFlow;
+			temp -= carTrips;
+			IloRange selectedCarConstraint1(temp <= 0);
+			std::stringstream name1;
+			name1 << "selectedCar " << c;
+			selectedCarConstraint1.setName(name1.str().c_str());
+			//temp.end();
+			IloRange selectedCarConstraint2(rootFlow <= 1);
+			std::stringstream name2;
+			name2 << "selectedCar2 " << c;
+			selectedCarConstraint2.setName(name2.str().c_str());
+			IloExpr temp2(env);
+			temp2 += 1;
+			model2.add(selectedCarConstraint1);
+			model2.add(selectedCarConstraint2);
+			carTrips.end();
+			//carTrips2.end();
+			rootFlow.end();
+			temp.end();
+			temp2.end();
+		}
+
+		// flow conservation
+		for(int c = 0; c < carCount; c++)
+		{
+			for(int i = 0; i < stationCount; i++)
+			{
+				for(int t = 0; t < instance.getMaxTime(); t++)
+				{
+					auto inEdges = locationGraph.incomingEdges(i, t);
+					auto outEdges = locationGraph.outgoingEdges(i, t);
+					IloExpr inFlow(env2);
+					IloExpr outFlow(env2);
+					IloExpr temp(env2);
+					for(auto edge : inEdges)
+					{
+						//inFlow += f[c * locationEdgeCount + locEdgeIndex[edge]];
+						temp += f[c * locationEdgeCount + locEdgeIndex[edge]];
+					}
+					for(auto edge : outEdges)
+					{
+						//outFlow += f[c * locationEdgeCount + locEdgeIndex[edge]];
+						temp -= f[c * locationEdgeCount + locEdgeIndex[edge]];
+					}
+
+					//temp += inFlow;
+					//temp -= outFlow;
+					IloRange flowConservationConstraint(temp == 0);
+					std::stringstream name;
+					name << "flowConservation " << c << "," << i << "," << t;
+					flowConservationConstraint.setName(name.str().c_str());
+					model2.add(flowConservationConstraint);
+					inFlow.end();
+					outFlow.end();
+					temp.end();
+					//flowConservationConstraint.end();
+				}
+			}
+		}
+
+
+		// flow for covered trips
+		for(int k = 0; k < tripCount; k++)
+		{
+			auto tripArcs = locationGraph.tripArcsOf(instance.getTrips()[k]);
+			for(int c = 0; c < carCount; c++)
+			{
+				IloExpr selectedTripFlow(env2);
+				for(auto arc : tripArcs)
+				{
+					selectedTripFlow += f[c * locationEdgeCount + locEdgeIndex[arc]];
+				}
+				//std::cout << "foo: " << selectedTripFlow << std::endl;
+				IloRange selectedTripFlowConstraint(selectedTripFlow == avals[k * instance.getCarCount() + c]);
+				std::stringstream name;
+				name << "tripSelection " << k << "," << c;
+				selectedTripFlowConstraint.setName(name.str().c_str());
+				model2.add(selectedTripFlowConstraint);
+				selectedTripFlow.end();
+				//selectedTripFlowConstraint.end();
+			}
+		}
+
+		IloCplex cplex2(model2);
+		cplex2.exportModel("additionalFlow.lp");
+		cplex2.solve();
+		std::cout << cplex2.getStatus() << std::endl;
 	}
 }
 
