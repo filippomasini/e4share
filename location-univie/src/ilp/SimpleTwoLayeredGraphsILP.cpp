@@ -414,6 +414,7 @@ void SimpleTwoLayeredGraphsILP::solve()
 	int carCount = instance.getCarCount();
 
 	cplex = IloCplex(model);
+	cplex.setParam(IloCplex::NumericalEmphasis, true);
 	if(!benders)
 	{
 		cplex.exportModel("nobenders.lp");

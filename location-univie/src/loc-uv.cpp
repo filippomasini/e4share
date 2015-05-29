@@ -20,9 +20,9 @@ using namespace e4share;
 
 int main(int argc, const char* argv[])
 {
-	register_handler();
-	std::string filename;
-	int budget;
+	//register_handler();
+	std::string filename("foo");
+	int budget = 0;
 	bool useBatteryGraph = true;
 	int walkingDistance = 10;
 	bool simpleModel = true;

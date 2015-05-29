@@ -1,0 +1,2 @@
+./loc-uv --budget 1000 --file instances/30x30-s10-cap20-k10-b1-50-t15-1.loc --batterygraph false --carcount 15 --uniform true --benders true
+./loc-uv --budget 10000 --file instances/30x30-s10-cap20-k10-b1-50-t15-1.loc --batterygraph false --carcount 15 --uniform true --benders true

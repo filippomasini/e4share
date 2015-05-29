@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <sstream>
 #include <string>
+#include <cmath>
 
 namespace e4share
 {
@@ -45,50 +46,22 @@ void BendersCallback::mainLazy()
 	LazyConsI::getValues(lambdavals, lambda);
 	for(int i = 0; i < lambdavals.getSize(); i++)
 	{
-		if(abs(lambdavals[i]) < 0.5)
-		{
-			lambdavals[i] = 0;
-		}
-		else
-		{
-			lambdavals[i] = 1;
-		}
+		lambdavals[i] = round(lambdavals[i]);
 	}
 	LazyConsI::getValues(yvals, y);
 	for(int i = 0; i < yvals.getSize(); i++)
 	{
-		if(abs(yvals[i]) < 0.5)
-		{
-			yvals[i] = 0;
-		}
-		else
-		{
-			yvals[i] = 1;
-		}
+		yvals[i] = round(yvals[i]);
 	}
 	LazyConsI::getValues(svals, s);
-//	for(int i = 0; i < svals.getSize(); i++)
-//	{
-//		if(abs(svals[i]) < 0.5)
-//		{
-//			svals[i] = 0;
-//		}
-//		else
-//		{
-//			svals[i] = 1;
-//		}
-//	}
+	for(int i = 0; i < svals.getSize(); i++)
+	{
+		svals[i] = round(svals[i]);
+	}
 	LazyConsI::getValues(avals, a);
 	for(int i = 0; i < avals.getSize(); i++)
 	{
-		if(abs(avals[i]) < 0.5)
-		{
-			avals[i] = 0;
-		}
-		else
-		{
-			avals[i] = 1;
-		}
+		avals[i] = round(avals[i]);
 	}
 
 
@@ -365,6 +338,7 @@ void BendersCallback::mainLazy()
 	IloCplex cplex(model);
 	cplex.extract(model);
 	cplex.exportModel("lastBenders.lp");
+	cplex.setParam(IloCplex::NumericalEmphasis, true);
 	cplex.setParam(IloCplex::RootAlg, IloCplex::Dual);
 	cplex.setParam(IloCplex::PreInd, false);
 	cplex.setParam(IloCplex::Reduce, false);
