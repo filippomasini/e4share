@@ -7,6 +7,7 @@
 #include "input/DummyFormatReader.h"
 
 #include <fstream>
+#include <algorithm>
 
 namespace e4share
 {
@@ -18,7 +19,7 @@ DummyFormatReader::DummyFormatReader(int walkingDistance_) :
 
 }
 
-CSLocationInstance DummyFormatReader::readInstance(std::string filename, int carCount, bool uniformProfit)
+CSLocationInstance DummyFormatReader::readInstance(std::string filename, int carCount, bool uniformProfit, int maxTrips, int maxStations)
 {
 	std::string toignore;
 	std::ifstream instancefile(filename);
@@ -46,6 +47,18 @@ CSLocationInstance DummyFormatReader::readInstance(std::string filename, int car
 
 	int tripCount;
 	instancefile >> tripCount;
+
+	maxTrips = std::min(maxTrips, tripCount);
+	maxStations = std::min(maxStations, stationCount);
+	// set maxTrips/Stations to trip/stationCount if they are -1
+	if(maxTrips == -1)
+	{
+		maxTrips = tripCount;
+	}
+	if(maxStations == -1)
+	{
+		maxStations = stationCount;
+	}
 
 	std::cout << vertexCount << "," << edgeCount << std::endl;
 	std::cout << instancefile << std::endl;
@@ -94,7 +107,10 @@ CSLocationInstance DummyFormatReader::readInstance(std::string filename, int car
 		instancefile >> cost;
 		instancefile >> costPerSlot;
 		instancefile >> capacity;
-		network.addChargingStation(location, cost, costPerSlot, capacity);
+		if(network.getCandidateStations().size() < maxStations)
+		{
+			network.addChargingStation(location, cost, costPerSlot, capacity);
+		}
 	}
 
 	// ignore comment lines
@@ -123,7 +139,10 @@ CSLocationInstance DummyFormatReader::readInstance(std::string filename, int car
 			profit = 1;
 		}
 		Trip trip(i, network, origin, destination, beginTime, endTime, batteryConsumption, profit);
-		trips.push_back(trip);
+		if(trips.size() < maxTrips)
+		{
+			trips.push_back(trip);
+		}
 	}
 
 	instancefile.close();

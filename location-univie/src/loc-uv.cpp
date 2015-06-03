@@ -29,6 +29,8 @@ int main(int argc, const char* argv[])
 	bool benders = false;
 	int carCount = 1;
 	bool uniformProfit = true;
+	int maxTrips = -1;
+	int maxStations = -1;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
@@ -41,6 +43,8 @@ int main(int argc, const char* argv[])
 		("benders", po::value<bool>(&benders), "whether to use Benders decomposition or not")
 		("carcount,c", po::value<int>(&carCount), "maximum number of cars used in our models")
 		("uniform,u", po::value<bool>(&uniformProfit), "whether trips have uniform profit of 1 or the value from the instance file")
+		("maxtrips", po::value<int>(&maxTrips), "maximum number of trips to be read from the input file; -1 to read all")
+		("maxstations", po::value<int>(&maxStations), "maximum number of stations to be read from the input file; -1 to read all")
 	;
 
 	po::variables_map vm;
@@ -57,7 +61,7 @@ int main(int argc, const char* argv[])
 
 	//TempFormatReader reader;
 	DummyFormatReader reader(walkingDistance);
-	auto instance = reader.readInstance(filename, carCount, uniformProfit);
+	auto instance = reader.readInstance(filename, carCount, uniformProfit, maxTrips, maxStations);
 
 	// check
 

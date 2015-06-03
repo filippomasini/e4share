@@ -334,7 +334,7 @@ void BendersCallback::mainLazy()
 	IloConstraintArray allConstraints(subEnv);
 	IloNumArray dualVars(subEnv);
 
-
+	//model.add(IloMaximize(subEnv));
 	IloCplex cplex(model);
 	cplex.extract(model);
 	cplex.exportModel("lastBenders.lp");
@@ -372,7 +372,8 @@ void BendersCallback::mainLazy()
 			}
 			//exit(-1);
 			std::cout << feasibilityCut << std::endl;
-			LazyConsI::add(feasibilityCut <= 0);
+			auto constraint = LazyConsI::add(feasibilityCut <= 0);
+			std::cout << constraint << std::endl;
 
 			//master model
 //			std::stringstream filename;
