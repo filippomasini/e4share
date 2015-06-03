@@ -96,13 +96,13 @@ void BendersCallback::mainLazy()
 		}
 	}
 
-	for(int k = 0; k < tripCount; k++)
-	{
-		for(int c = 0; c < carCount; c++)
-		{
-			std::cout << "a" << c << "," << k << ": " << avals[k * carCount + c] << std::endl;
-		}
-	}
+//	for(int k = 0; k < tripCount; k++)
+//	{
+//		for(int c = 0; c < carCount; c++)
+//		{
+//			std::cout << "a" << c << "," << k << ": " << avals[k * carCount + c] << std::endl;
+//		}
+//	}
 
 	// mapping edges to edge-indices
 	std::map<LocationGraph::Edge, int> locEdgeIndex;
@@ -189,6 +189,7 @@ void BendersCallback::mainLazy()
 			//capacityConstraints.push_back(capacityConstraint);
 			constraintMap[capacityConstraint.getId()] = s[i];
 			model.add(capacityConstraint);
+			//capacityConstraint.end();
 			waitingCars.end();
 		}
 	}
@@ -215,6 +216,8 @@ void BendersCallback::mainLazy()
 				//openedStationConstraints.push_back(openedStationConstraint);
 				constraintMap[openedStationConstraint.getId()] = y[i];
 				model.add(openedStationConstraint);
+				//openedStationConstraint.end();
+				incomingArcs.end();
 			}
 		}
 	}
@@ -246,22 +249,35 @@ void BendersCallback::mainLazy()
 		selectedCarConstraint1.setName(name1.str().c_str());
 		//temp.end();
 		//selectedCarConstraints1.push_back(selectedCarConstraint1);
+//		if(constraintMap.count(selectedCarConstraint1.getId()) > 0)
+//		{
+//			std::cout << "cons: " << constraintMap[selectedCarConstraint1.getId()] << std::endl;
+//		}
 		constraintMap[selectedCarConstraint1.getId()] = carTrips2;
+		model.add(selectedCarConstraint1);
 		IloRange selectedCarConstraint2(rootFlow <= 1);
 		std::stringstream name2;
 		name2 << "selectedCar2 " << c;
 		selectedCarConstraint2.setName(name2.str().c_str());
 		//selectedCarConstraints2.push_back(selectedCarConstraint2);
-		IloExpr temp2(env);
-		temp2 += 1;
+		IloExpr temp2(env, 1);
+		//temp2 += 1;
+//		std::cout << "temp2: " << temp2 << std::endl;
+//		std::cout << "scc2: " << selectedCarConstraint2 << std::endl;
+//		std::cout << "count: " << constraintMap.count(selectedCarConstraint2.getId()) << std::endl;
 		constraintMap[selectedCarConstraint2.getId()] = temp2;
-		model.add(selectedCarConstraint1);
+//		std::cout << "scc2-map: " << constraintMap[selectedCarConstraint2.getId()] << std::endl;
+//		std::cout << "count2: " << constraintMap.count(selectedCarConstraint2.getId()) << std::endl;
+
 		model.add(selectedCarConstraint2);
+
+		//selectedCarConstraint1.end();
+		//selectedCarConstraint2.end();
 		carTrips.end();
 		//carTrips2.end();
 		rootFlow.end();
 		temp.end();
-		temp2.end();
+		//temp2.end();
 	}
 
 	// flow conservation
@@ -296,6 +312,7 @@ void BendersCallback::mainLazy()
 				flowConservationConstraint.setName(name.str().c_str());
 				//flowConservationConstraints.push_back(flowConservationConstraint);
 				model.add(flowConservationConstraint);
+				//flowConservationConstraint.end();
 				inFlow.end();
 				outFlow.end();
 				temp.end();
@@ -321,9 +338,18 @@ void BendersCallback::mainLazy()
 			std::stringstream name;
 			name << "tripSelection " << k << "," << c;
 			selectedTripFlowConstraint.setName(name.str().c_str());
+//			if(constraintMap.count(selectedTripFlowConstraint.getId()) > 0)
+//			{
+//				std::cout << "cons: " << constraintMap[selectedTripFlowConstraint.getId()] << std::endl;
+//			}
 			//selectedTripFlowConstraints.push_back(selectedTripFlowConstraint);
 			constraintMap[selectedTripFlowConstraint.getId()] = a[k * instance.getCarCount() + c];
+//			if(constraintMap.count(selectedTripFlowConstraint.getId()) > 0)
+//			{
+//				std::cout << "cons: " << constraintMap[selectedTripFlowConstraint.getId()] << std::endl;
+//			}
 			model.add(selectedTripFlowConstraint);
+			//selectedTripFlowConstraint.end();
 			selectedTripFlow.end();
 			//selectedTripFlowConstraint.end();
 		}
@@ -336,14 +362,14 @@ void BendersCallback::mainLazy()
 
 	//model.add(IloMaximize(subEnv));
 	IloCplex cplex(model);
-	cplex.extract(model);
-	cplex.exportModel("lastBenders.lp");
+	//cplex.extract(model);
+	//cplex.exportModel("lastBenders.lp");
 	cplex.setParam(IloCplex::NumericalEmphasis, true);
 	cplex.setParam(IloCplex::RootAlg, IloCplex::Dual);
 	cplex.setParam(IloCplex::PreInd, false);
 	cplex.setParam(IloCplex::Reduce, false);
 	cplex.solve();
-	cplex.writeSolution("foo.sol");
+	//cplex.writeSolution("foo.sol");
 	auto status = cplex.getStatus();
 	std::cout << status << std::endl;
 
